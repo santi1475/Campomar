@@ -108,29 +108,34 @@ export function ListaPlatos() {
           </Select>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredPlatos.map((plato) => (
-            <motion.div
-              key={plato.PlatoID}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card className="h-full bg-white dark:bg-gray-800 hover:shadow-md transition-shadow duration-300 overflow-hidden">
-                <CardContent className="p-4 flex flex-col justify-between h-full">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">{plato.Descripcion}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{categorias[plato.CategoriaID] || "Otro"}</p>
-                  </div>
-                  <div className="mt-4 flex justify-between items-center">
-                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">S/{plato.Precio!.toString()}</span>
-                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded-full">
-                      {categorias[plato.CategoriaID] || "Otro"}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+          {filteredPlatos.map((plato) => {
+            // CORRECCIÓN: Guardamos el nombre de la categoría en una variable, manejando el caso nulo.
+            const categoriaNombre = plato.CategoriaID ? categorias[plato.CategoriaID] || "Otro" : "Otro";
+            
+            return (
+              <motion.div
+                key={plato.PlatoID}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="h-full bg-white dark:bg-gray-800 hover:shadow-md transition-shadow duration-300 overflow-hidden">
+                  <CardContent className="p-4 flex flex-col justify-between h-full">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">{plato.Descripcion}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{categoriaNombre}</p>
+                    </div>
+                    <div className="mt-4 flex justify-between items-center">
+                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">S/{Number(plato.Precio || 0).toFixed(2)}</span>
+                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded-full">
+                        {categoriaNombre}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )
+          })}
         </div>
       </CardContent>
     </Card>
@@ -176,4 +181,3 @@ function ErrorMessage({ message }: { message: string }) {
     </Alert>
   );
 }
-
