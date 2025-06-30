@@ -1,7 +1,6 @@
 import { Mesas } from "@/components/trabajadores/sala/Mesas";
 
-export function TabsDemo() {
+// Cambiamos el nombre de la función y la exportamos por defecto
+export default function SalaPage() {
   return <Mesas />;
 }
-
-export default TabsDemo;
