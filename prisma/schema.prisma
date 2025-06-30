@@ -3,64 +3,67 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" // Debe estar así
+  provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-model auditoria {
-  AuditoriaID   Int       @id @default(autoincrement())
-  Operacion     String?   @db.VarChar(10)
-  TablaAfectada String?   @db.VarChar(50)
-  IDAfectado    Int?
-  Fecha         DateTime? @default(now()) @db.Timestamp(0)
-  Usuario       String?   @db.VarChar(50)
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model empleados {
-  EmpleadoID     Int           @id @default(autoincrement())
-  Nombre         String?       @db.VarChar(100)
-  TipoEmpleadoID Int?
-  DNI            String?       @unique(map: "DNI_UNIQUE") @db.Char(8)
-  Password       String?       @db.VarChar(255)
-  tipoempleado   tipoempleado? @relation(fields: [TipoEmpleadoID], references: [TipoEmpleadoID], onDelete: NoAction, onUpdate: NoAction, map: "empleados_ibfk_1")
-  pedidos        pedidos[]
-
-  @@index([TipoEmpleadoID], map: "TipoEmpleadoID")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model pedidos {
-  PedidoID       Int              @id @default(autoincrement())
-  EmpleadoID     Int
-  Fecha          DateTime
-  Total          Decimal          @db.Decimal(10, 2)
-  Estado         String           @default(dbgenerated("b'1'")) @db.Bit(1)
-  TipoPago       Int?
-  detallepedidos detallepedidos[]
-  pedido_mesas   pedido_mesas[]
-  empleados      empleados        @relation(fields: [EmpleadoID], references: [EmpleadoID], onDelete: NoAction, onUpdate: NoAction, map: "pedidos_ibfk_1")
-  tipopago       tipopago?        @relation(fields: [TipoPago], references: [TipoPagoID], onDelete: NoAction, onUpdate: NoAction, map: "Fk_TipoPago")
-
-  @@index([EmpleadoID], map: "FK_EmpleadoPedido")
-  @@index([TipoPago], map: "Fk_TipoPago_idx")
-}
-
-model platos {
-  PlatoID        Int              @id @default(autoincrement())
-  Descripcion    String?          @db.VarChar(255)
-  Precio         Decimal?         @db.Decimal(10, 2)
-  CategoriaID    Int
-  detallepedidos detallepedidos[]
-  categorias     categorias       @relation(fields: [CategoriaID], references: [CategoriaID], onDelete: NoAction, onUpdate: NoAction, map: "FK_CategoriaID")
-
-  @@index([CategoriaID], map: "FK_CategoriaID_idx")
 }
 
 model tipoempleado {
   TipoEmpleadoID Int         @id @default(autoincrement())
   Descripcion    String?     @db.VarChar(50)
   empleados      empleados[]
+}
+
+model empleados {
+  EmpleadoID     Int           @id @default(autoincrement())
+  Nombre         String?       @db.VarChar(100)
+  TipoEmpleadoID Int?
+  DNI            String?       @unique @db.Char(8)
+  Password       String?       @db.VarChar(255)
+  tipoempleado   tipoempleado? @relation(fields: [TipoEmpleadoID], references: [TipoEmpleadoID], onDelete: SetNull, onUpdate: Cascade)
+  pedidos        pedidos[]
+}
+
+model categorias {
+  CategoriaID Int      @id @default(autoincrement())
+  Descripcion String   @db.VarChar(255)
+  platos      platos[]
+}
+
+model platos {
+  PlatoID        Int              @id @default(autoincrement())
+  Descripcion    String?          @db.VarChar(255)
+  Precio         Decimal?         @db.Decimal(10, 2)
+  CategoriaID    Int?
+  categorias     categorias?      @relation(fields: [CategoriaID], references: [CategoriaID], onDelete: SetNull, onUpdate: Cascade)
+  detallepedidos detallepedidos[]
+}
+
+model tipopago {
+  TipoPagoID  Int       @id @default(autoincrement())
+  Descripcion String?   @db.VarChar(45)
+  pedidos     pedidos[]
+}
+
+model pedidos {
+  PedidoID       Int              @id @default(autoincrement())
+  EmpleadoID     Int?
+  Fecha          DateTime         @default(now()) @db.Timestamp(3)
+  Total          Decimal          @default(0) @db.Decimal(10, 2)
+  Estado         Boolean          @default(true) // <- CORRECCIÓN PRINCIPAL
+  TipoPago       Int?
+  empleados      empleados?       @relation(fields: [EmpleadoID], references: [EmpleadoID], onDelete: SetNull, onUpdate: Cascade)
+  tipopago       tipopago?        @relation(fields: [TipoPago], references: [TipoPagoID], onDelete: SetNull, onUpdate: Cascade)
+  detallepedidos detallepedidos[]
+  pedido_mesas   pedido_mesas[]
+}
+
+model detallepedidos {
+  DetalleID Int     @id @default(autoincrement())
+  PedidoID  Int
+  PlatoID   Int
+  Cantidad  Int
+  pedidos   pedidos @relation(fields: [PedidoID], references: [PedidoID], onDelete: Cascade, onUpdate: Cascade)
+  platos    platos  @relation(fields: [PlatoID], references: [PlatoID], onDelete: Restrict, onUpdate: Cascade)
 }
 
 model mesas {
@@ -70,37 +73,10 @@ model mesas {
   pedido_mesas pedido_mesas[]
 }
 
-model detallepedidos {
-  DetalleID Int     @id @default(autoincrement())
-  PedidoID  Int
-  PlatoID   Int
-  Cantidad  Int
-  pedidos   pedidos @relation(fields: [PedidoID], references: [PedidoID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PedidoDetalle_relation")
-  platos    platos  @relation(fields: [PlatoID], references: [PlatoID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PlatoDetalle_relation")
-
-  @@index([PedidoID], map: "FK_PedidoDetalle")
-  @@index([PlatoID], map: "FK_PlatoDetalle")
-}
-
-model categorias {
-  CategoriaID Int      @id @default(autoincrement())
-  Descripcion String   @db.VarChar(255)
-  platos      platos[]
-}
-
 model pedido_mesas {
-  PedidoMesaID Int      @id @default(autoincrement())
-  PedidoID     Int?
-  MesaID       Int?
-  pedidos      pedidos? @relation(fields: [PedidoID], references: [PedidoID], onDelete: NoAction, onUpdate: NoAction, map: "pedido_mesas_ibfk_1")
-  mesas        mesas?   @relation(fields: [MesaID], references: [MesaID], onDelete: NoAction, onUpdate: NoAction, map: "pedido_mesas_ibfk_2")
-
-  @@index([MesaID], map: "MesaID")
-  @@index([PedidoID], map: "PedidoID")
-}
-
-model tipopago {
-  TipoPagoID  Int       @id @default(autoincrement())
-  Descripcion String?   @db.VarChar(45)
-  pedidos     pedidos[]
+  id       Int   @id @default(autoincrement())
+  PedidoID Int
+  MesaID   Int
+  pedidos  pedidos @relation(fields: [PedidoID], references: [PedidoID], onDelete: Cascade, onUpdate: Cascade)
+  mesas    mesas   @relation(fields: [MesaID], references: [MesaID], onDelete: Cascade, onUpdate: Cascade)
 }

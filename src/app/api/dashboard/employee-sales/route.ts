@@ -7,25 +7,32 @@ export async function GET(req: Request) {
   const endDate = searchParams.get("endDate");
 
   try {
-    // Consulta para obtener ventas totales agrupadas por empleado con su nombre
+    // 1. Obtenemos las ventas agrupadas por ID de empleado, asegurándonos de que el ID no sea nulo.
     const salesByEmployee = await prisma.pedidos.groupBy({
       by: ["EmpleadoID"],
       _sum: { Total: true },
       where: {
+        Estado: { equals: false }, // Pedidos completados
+        EmpleadoID: { not: null }, // ¡Importante! Filtramos los pedidos sin empleado
         Fecha: {
           gte: startDate ? new Date(startDate) : undefined,
           lte: endDate ? new Date(endDate) : undefined,
         },
-        Estado: false, // Solo pedidos completados
       },
       orderBy: {
         _sum: { Total: "desc" },
       },
     });
 
-    // Obtenemos los nombres de empleados en una sola consulta
-    const employeeIDs = salesByEmployee.map((sale) => sale.EmpleadoID);
+    // Si no hay ventas que cumplan la condición, devolvemos un array vacío para evitar errores.
+    if (salesByEmployee.length === 0) {
+      return NextResponse.json({ salesByEmployee: [] });
+    }
 
+    // 2. Extraemos los IDs de los empleados. Gracias al filtro anterior, ahora estamos seguros de que son números.
+    const employeeIDs = salesByEmployee.map((sale) => sale.EmpleadoID as number);
+
+    // 3. Buscamos los nombres de esos empleados en una sola consulta para mayor eficiencia.
     const employees = await prisma.empleados.findMany({
       where: {
         EmpleadoID: { in: employeeIDs },
@@ -36,23 +43,22 @@ export async function GET(req: Request) {
       },
     });
 
-    // Creamos un mapa para relacionar EmpleadoID con su nombre
-    const employeeMap = employees.reduce((acc, emp) => {
-      acc[emp.EmpleadoID] = emp.Nombre || `EmpleadoID ${emp.EmpleadoID}`;
-      return acc;
-    }, {} as { [key: number]: string });
+    // 4. Creamos un mapa (Map) para buscar nombres de forma óptima. Es más rápido que un `reduce`.
+    const employeeMap = new Map(
+      employees.map((emp) => [emp.EmpleadoID, emp.Nombre || `Empleado #${emp.EmpleadoID}`])
+    );
 
-    // Fusionamos las ventas totales con los nombres de empleados
+    // 5. Unimos los datos de ventas con los nombres de los empleados.
     const detailedSales = salesByEmployee.map((sale) => ({
-      empleado: employeeMap[sale.EmpleadoID],
+      empleado: employeeMap.get(sale.EmpleadoID as number) || "Empleado Desconocido",
       totalSold: Number(sale._sum.Total) || 0,
     }));
 
     return NextResponse.json({ salesByEmployee: detailedSales });
   } catch (error) {
-    console.error("Error fetching sales by employee:", error);
+    console.error("Error al obtener ventas por empleado:", error);
     return NextResponse.json(
-      { error: "Failed to fetch sales by employee" },
+      { error: "No se pudieron obtener las ventas por empleado." },
       { status: 500 }
     );
   }
