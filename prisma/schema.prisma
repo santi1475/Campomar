@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql" // Debe estar así
   url      = env("DATABASE_URL")
 }
 
@@ -33,9 +33,9 @@ model empleados {
 model pedidos {
   PedidoID       Int              @id @default(autoincrement())
   EmpleadoID     Int
-  Fecha          DateTime         @db.DateTime(0)
+  Fecha          DateTime
   Total          Decimal          @db.Decimal(10, 2)
-  Estado         Boolean          @default(dbgenerated("b'1'")) @db.Bit(1)
+  Estado         String           @default(dbgenerated("b'1'")) @db.Bit(1)
   TipoPago       Int?
   detallepedidos detallepedidos[]
   pedido_mesas   pedido_mesas[]
@@ -75,8 +75,8 @@ model detallepedidos {
   PedidoID  Int
   PlatoID   Int
   Cantidad  Int
-  pedidos   pedidos @relation(fields: [PedidoID], references: [PedidoID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PedidoDetalle")
-  platos    platos  @relation(fields: [PlatoID], references: [PlatoID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PlatoDetalle")
+  pedidos   pedidos @relation(fields: [PedidoID], references: [PedidoID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PedidoDetalle_relation")
+  platos    platos  @relation(fields: [PlatoID], references: [PlatoID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PlatoDetalle_relation")
 
   @@index([PedidoID], map: "FK_PedidoDetalle")
   @@index([PlatoID], map: "FK_PlatoDetalle")
