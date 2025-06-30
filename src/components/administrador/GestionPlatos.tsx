@@ -223,7 +223,7 @@ export const GestionPlatos = () => {
           </div>
           <div className="mb-6">
             <Label htmlFor="searchDishes" className="text-sm font-medium text-gray-700">
-              Buscar Platos
+              Buscar Platos:
             </Label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
