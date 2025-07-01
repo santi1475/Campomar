@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import BoletaTotal from "../boleta/BoletaTotal";
-import BoletaCocinaImprimir from "@/components/trabajadores/boleta/BoletaCocinaPrint"; // Ensure this file exists at the specified path or update the path to the correct location.
+import BoletaCocinaImprimir from "@/components/trabajadores/boleta/BoletaCocinaPrint";
 
 export const MesaOcupada = () => {
   const empleado: empleados = useEmpleadoStore((state: any) => state.empleado);
@@ -33,7 +33,7 @@ export const MesaOcupada = () => {
 
   const [selectedTables, setSelectedTables] = useState<mesas[]>([]);
   const [pedido, setPedido] = useState<any | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [tipoPago, setTipoPago] = useState<number | null>(null);
   const [comentarioCocina, setComentarioCocina] = useState("");
@@ -46,16 +46,24 @@ export const MesaOcupada = () => {
 
     try {
       const response = await fetch(`/api/pedido_mesas?mesas=${mesasParam}`);
+
+      // =================== INICIO DE LA CORRECCIÓN ===================
+      // Manejamos el 404 como un caso esperado: no hay pedido activo.
+      // Si la respuesta es 404, significa que la mesa está ocupada pero no tiene un pedido aún.
+      if (response.status === 404) {
+        setPedido(null); // Establecemos el pedido como nulo para que la UI muestre el mensaje correcto.
+        return;          // Salimos de la función sin tratarlo como un error.
+      }
+      // =================== FIN DE LA CORRECCIÓN ===================
+
+      // Si la respuesta no es 404, pero aun así no es exitosa (ej. error 500), lanzamos un error.
       if (!response.ok) {
         throw new Error("Error al obtener el pedido");
       }
 
       const data = await response.json();
-      if (!data || !data.detalles || data.detalles.length === 0) {
-        setPedido(null); // No hay pedido activo
-      } else {
-        setPedido(data); // Pedido encontrado
-      }
+      setPedido(data); // Pedido encontrado, lo guardamos en el estado.
+
     } catch (error) {
       console.error(error);
       setError("Error al obtener el pedido. Inténtalo de nuevo más tarde.");
@@ -78,6 +86,8 @@ export const MesaOcupada = () => {
 
       fetchPedido();
       fetchMesas();
+    } else {
+        setIsLoading(false);
     }
   }, [fetchPedido, mesasParam]);
 
