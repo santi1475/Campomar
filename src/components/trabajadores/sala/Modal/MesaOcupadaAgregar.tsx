@@ -38,7 +38,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido }: Props) => {
   useEffect(() => {
     const fetchPlatos = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/platos", {
+        const response = await fetch("api/platos", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
