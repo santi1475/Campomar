@@ -275,7 +275,7 @@ function KanbanView({ platos, searchTerm }: { platos: platos[]; searchTerm: stri
                 {platosEnCategoria.length === 0 ? (
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                     <p className="text-sm">No hay platos en esta categoría</p>
-                    {searchTerm && <p className="text-xs mt-1">que coincidan con "{searchTerm}"</p>}
+                    {searchTerm && <p className="text-xs mt-1">{`que coincidan con "${searchTerm}"`}</p>}
                   </div>
                 ) : (
                   platosEnCategoria.map((plato, index) => (
