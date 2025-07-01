@@ -25,11 +25,14 @@ export async function GET(request: Request, { params }: Segments) {
   return NextResponse.json(empleado);
 }
 
+// =================== INICIO DE LA CORRECCIÓN ===================
+// Añadimos 'Activo' al esquema de validación.
 const putSchema = yup.object({
   Nombre: yup.string().required(),
   TipoEmpleadoID: yup.number().required(),
   DNI: yup.string().required(),
   Password: yup.string().required(),
+  Activo: yup.boolean().optional(), // Hacemos que 'Activo' sea opcional
 });
 
 export async function PUT(request: Request, { params }: Segments) {
@@ -47,13 +50,14 @@ export async function PUT(request: Request, { params }: Segments) {
   }
 
   try {
-    const { DNI, Nombre, Password, TipoEmpleadoID } = await putSchema.validate(
+    // Ahora también extraemos 'Activo' del cuerpo de la solicitud.
+    const { DNI, Nombre, Password, TipoEmpleadoID, Activo } = await putSchema.validate(
       await request.json()
     );
 
     const updatedEmpleado = await prisma.empleados.update({
       where: { EmpleadoID: parseInt(id) },
-      data: { DNI, Nombre, Password, TipoEmpleadoID },
+      data: { DNI, Nombre, Password, TipoEmpleadoID, Activo }, // Incluimos 'Activo' en los datos a actualizar
     });
 
     return NextResponse.json(updatedEmpleado);
@@ -61,6 +65,8 @@ export async function PUT(request: Request, { params }: Segments) {
     return NextResponse.json(error, { status: 400 });
   }
 }
+// =================== FIN DE LA CORRECCIÓN ===================
+
 
 export async function DELETE(request: Request, { params }: Segments) {
   const { id } = params;
