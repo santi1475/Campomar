@@ -99,7 +99,7 @@
           </CardHeader>
           <CardContent className="p-3 sm:p-4 md:p-6">
             {/* Grid de mesas con mejor responsividad */}
-            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] gap-4 mb-6">
               {mesas.map((mesa) => (
                 <Button
                   key={mesa.MesaID}

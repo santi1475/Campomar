@@ -25,10 +25,10 @@ export const Logout = () => {
   }
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <AlertDialog>
+    <AlertDialog>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
             <AlertDialogTrigger asChild>
               <Button
                 variant="ghost"
@@ -38,24 +38,24 @@ export const Logout = () => {
                 <LogOut className="h-6 w-6 rotate-180" />
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
-              <AlertDialogHeader>
-                <AlertDialogTitle>¿Estás seguro que deseas cerrar sesión?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta acción cerrará tu sesión actual y te redirigirá a la página de inicio de sesión.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0">
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleLogout}>Cerrar Sesión</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Cerrar Sesión</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Cerrar Sesión</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Estás seguro que deseas cerrar sesión?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta acción cerrará tu sesión actual y te redirigirá a la página de inicio de sesión.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleLogout}>Cerrar Sesión</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
