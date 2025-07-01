@@ -2,34 +2,51 @@ import prisma from "@/lib/db";
 import { NextResponse, NextRequest } from "next/server";
 import * as yup from "yup";
 
-const getSchema = yup.object({
-  Estado: yup.boolean().optional(),
-});
+// --- GET ---
+// La función GET se ha modificado para leer desde la URL.
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const estadoParam = searchParams.get("Estado");
 
-export async function GET(req: NextRequest, res: NextResponse) {
-  const { Estado } = await getSchema.validate(req.json());
+  // Creamos un objeto 'where' para el filtro de Prisma.
+  const where: { Estado?: boolean } = {};
 
-  const pedidos = await prisma.pedidos.findMany({
-    where: {
-      Estado: Estado,
-    },
-  });
-  if (!pedidos) {
+  // Si el parámetro 'Estado' existe en la URL, lo agregamos a nuestro filtro.
+  if (estadoParam !== null) {
+    where.Estado = estadoParam === "true";
+  }
+
+  try {
+    const pedidos = await prisma.pedidos.findMany({
+      where: where,
+    });
+
+    // La lógica de respuesta permanece igual.
+    if (!pedidos) {
+      return NextResponse.json(
+        { message: "No se encontraron pedidos" },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json(pedidos);
+  } catch (error) {
+    // Capturamos cualquier otro posible error.
     return NextResponse.json(
-      { message: "No se encontraron pedidos" },
-      { status: 404 }
+      { message: "Error interno del servidor" },
+      { status: 500 }
     );
   }
-  return NextResponse.json(pedidos);
 }
 
+// --- POST ---
+// La función POST ya era correcta y no necesita cambios.
 const postSchema = yup.object({
   EmpleadoID: yup.number().required(),
   Fecha: yup.date().required(),
   Total: yup.number().optional(),
 });
 
-export async function POST(req: NextRequest, res: NextResponse) {
+export async function POST(req: NextRequest) {
   try {
     const { EmpleadoID, Fecha, Total } = await postSchema.validate(
       await req.json()
