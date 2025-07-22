@@ -8,16 +8,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "./ui/form";
+} from "@/components/ui/form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useEmpleadoStore } from "@/store/empleado";
 import { useRouter } from "next/navigation";
 import { empleados } from "@prisma/client";
 import { useState } from "react";
-import { Spinner } from "./ui/spinner";
+import { Spinner } from "@/components/shared/ui/spinner";
 
 const FormSchema = z.object({
   DNI: z

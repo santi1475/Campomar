@@ -1,7 +1,7 @@
 "use client";
 
-import MesaLibre from "@/components/trabajadores/sala/MesaLibre";
-import { MesaOcupada } from "@/components/trabajadores/sala/MesaOcupada";
+import MesaLibre from "@/features/crear-pedido/components/CrearPedidoView";
+import { MesaOcupada } from "@/features/pedidos-activos/components/ModificarPedidoView";
 import { empleados, mesas } from "@prisma/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
