@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useRef, useState } from "react"
 import { useReactToPrint } from "react-to-print"
-import BoletaCocina from "@/components/trabajadores/boleta/BoletaCocina"
+import BoletaCocina from "@/features/impresion-cocina/components/ComandaCocina"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Printer } from "lucide-react"

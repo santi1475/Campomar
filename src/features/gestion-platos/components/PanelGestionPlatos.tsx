@@ -1,21 +1,21 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { TabsContent } from "../ui/tabs";
+import { TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "../ui/label";
-import { Input } from "../ui/input";
-import { Button } from "../ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Edit, PlusCircle, Trash2, Search } from "lucide-react";
 import { platos } from "@prisma/client";
-import { Spinner } from "../ui/spinner";
+import { Spinner } from "@/components/shared/ui/spinner";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
+} from "@/components/ui/select";
 
 // Definimos un tipo local para manejar los platos en el cliente sin usar 'Decimal'
 type PlatoCliente = Omit<platos, 'Precio'> & {

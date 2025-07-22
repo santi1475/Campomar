@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { RefreshCcw, Search } from 'lucide-react'
-import OrderTable from "@/components/trabajadores/pedidos/OrderTable"
+import OrderTable from "@/features/pedidos-activos/components/OrderTable"
 
 const OrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState("")

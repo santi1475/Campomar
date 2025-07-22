@@ -14,7 +14,8 @@ import { empleados, mesas } from "@prisma/client";
 import { X, PlusIcon, MinusIcon, Trash2, Printer } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { MesaOcupadaAgregar } from "./Modal/MesaOcupadaAgregar";
+import { MesaOcupadaAgregar } from "./ModalAgregarPlato";
+
 import {
   Select,
   SelectContent,
@@ -22,8 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import BoletaTotal from "../boleta/BoletaTotal";
-import BoletaCocinaImprimir from "@/components/trabajadores/boleta/BoletaCocinaPrint";
+//import BoletaTotal from "@/boleta/BoletaTotal";
+import BoletaCocinaImprimir from "@/features/impresion-cocina/components/BoletaCocinaPrint";
 
 export const MesaOcupada = () => {
   const empleado: empleados = useEmpleadoStore((state: any) => state.empleado);
@@ -46,17 +47,11 @@ export const MesaOcupada = () => {
 
     try {
       const response = await fetch(`/api/pedido_mesas?mesas=${mesasParam}`);
-
-      // =================== INICIO DE LA CORRECCIÓN ===================
-      // Manejamos el 404 como un caso esperado: no hay pedido activo.
-      // Si la respuesta es 404, significa que la mesa está ocupada pero no tiene un pedido aún.
       if (response.status === 404) {
         setPedido(null); // Establecemos el pedido como nulo para que la UI muestre el mensaje correcto.
         return;          // Salimos de la función sin tratarlo como un error.
       }
-      // =================== FIN DE LA CORRECCIÓN ===================
 
-      // Si la respuesta no es 404, pero aun así no es exitosa (ej. error 500), lanzamos un error.
       if (!response.ok) {
         throw new Error("Error al obtener el pedido");
       }

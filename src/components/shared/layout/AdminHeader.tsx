@@ -1,5 +1,5 @@
 'use client'
-import { Logout } from "@/components/trabajadores/Logout";
+import { Logout } from "@/components/shared/auth/Logout";
 
 
 export function AdminHeader() {

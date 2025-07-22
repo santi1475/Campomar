@@ -1,4 +1,4 @@
-import { ListaPlatos } from "@/components/trabajadores/carta/ListaPlatos";
+import { ListaPlatos } from "@/features/crear-pedido/components/MenuPlatos";
 import { platos } from "@prisma/client";
 import React from "react";
 

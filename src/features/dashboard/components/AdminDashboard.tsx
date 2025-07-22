@@ -14,12 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Spinner } from "../ui/spinner";
+import { Spinner } from "@/components/shared/ui/spinner";
 import {
   fetchEarnings,
   fetchSalesByEmployee,
   fetchTopSellingDishes,
-} from "@/utils/dashboardUtils";
+} from "@/features/dashboard/services/dashboardUtils";
 
 // Agrega nuevos estados para las ventas por empleado
 export const DashboardSummary = () => {

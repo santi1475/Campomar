@@ -1,6 +1,6 @@
 "use client";
 
-import { CardEmpleado } from "@/components/trabajadores/CardEmpleado";
+import { CardEmpleado } from "@/components/shared/ui/CardNavegacion";
 import { useEmpleadoStore } from "@/store/empleado";
 import { empleados } from "@prisma/client";
 import { Armchair, BookOpen, HandPlatter } from "lucide-react";

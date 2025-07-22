@@ -1,10 +1,12 @@
 "use client";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { GestionMesas } from "@/components/administrador/GestionMesas";
-import { GestionEmpleados } from "@/components/administrador/GestionEmpleados";
-import { GestionPlatos } from "@/components/administrador/GestionPlatos";
-import { DashboardSummary } from "@/components/administrador/AdminDashboard";
-import { AdminHeader } from "@/components/administrador/AdminHeader";
+import { GestionMesas } from "@/features/gestion-mesas/components/PanelGestionMesas";
+// Update the import path below to the correct location if different
+// Update the import path below to the correct location if different
+import { GestionEmpleados } from "@/features/gestion-empleados/components/PanelGestionEmpleados";
+import { GestionPlatos } from "@/features/gestion-platos/components/PanelGestionPlatos";
+import { DashboardSummary } from "@/features/dashboard/components/AdminDashboard";
+import { AdminHeader } from "@/components/shared/layout/AdminHeader";
 import { useEmpleadoStore } from "@/store/empleado";
 import { useEffect, useState } from "react";
 import { empleados } from "@prisma/client";

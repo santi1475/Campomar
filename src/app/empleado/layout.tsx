@@ -1,7 +1,7 @@
-import EmpleadoLayoutWrapper from "@/components/trabajadores/EmpleadoLayout";
-import { Logout } from "@/components/trabajadores/Logout";
-import { Reloj } from "@/components/trabajadores/Reloj";
-import Sesion from "@/components/trabajadores/Sesion";
+import EmpleadoLayoutWrapper from "@/components/shared/layout/EmpleadoLayout";
+import { Logout } from "@/components/shared/auth/Logout";
+import { Reloj } from "@/components/shared/layout/Reloj";
+import Sesion from "@/components/shared/auth/Sesion";
 
 interface EmpleadoLayoutProps {
   children: React.ReactNode;

@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { TabsContent } from "../ui/tabs";
+import { TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "../ui/label";
-import { Input } from "../ui/input";
-import { Button } from "../ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -16,15 +16,14 @@ import {
 } from "@/components/ui/table";
 import { Edit, PlusCircle, UserCheck, UserX } from 'lucide-react'; // Importamos los nuevos iconos
 import { empleados } from "@prisma/client";
-import { Spinner } from "../ui/spinner";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
-import { Badge } from "../ui/badge"; // Importamos Badge para el estado
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge"; // Importamos Badge para el estado
 
 export const GestionEmpleados = () => {
   const [employees, setEmployees] = useState<empleados[]>([]);

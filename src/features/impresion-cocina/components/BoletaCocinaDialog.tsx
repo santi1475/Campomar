@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useReactToPrint } from "react-to-print";
-import BoletaCocina from "@/components/trabajadores/boleta/BoletaCocina"; // Asegúrate de importar el componente correcto
+import BoletaCocina from "@/features/impresion-cocina/components/ComandaCocina"; // Asegúrate de importar el componente correcto
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

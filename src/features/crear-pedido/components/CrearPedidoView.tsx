@@ -10,7 +10,7 @@ import type { empleados, mesas, platos } from "@prisma/client"
 import { useEmpleadoStore } from "@/store/empleado"
 import { useRouter } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import BoletaCocinaDialog from "../boleta/BoletaCocinaDialog"
+import BoletaCocinaDialog from "@/features/impresion-cocina/components/BoletaCocinaDialog"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 interface MesaProps {

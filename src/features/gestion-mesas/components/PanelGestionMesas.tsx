@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Edit, PlusCircle, Trash2 } from 'lucide-react';
 import { mesas } from "@prisma/client";
-import { Spinner } from "@/components/ui/spinner";
-import PedidosModal from "@/components/administrador/Gestion/ModalPedido";
-import { ModalConfirm } from "@/components/trabajadores/boleta/ModalConfirm";
+import { Spinner } from "@/components/shared/ui/spinner";
+import PedidosModal from "@/features/gestion-mesas/components/ModalVerPedido";
+import { ModalConfirm } from "@/components/shared/ui/ModalConfirm";
 
 interface PedidoActivo {
   PedidoID: number;
