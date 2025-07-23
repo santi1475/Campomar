@@ -9,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import BoletaTotal from "../boleta/BoletaTotal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Image from "next/image";
 import qrCode from "@/assets/OIP.jpg";
@@ -82,12 +81,15 @@ const OrderRow = ({
               </SelectContent>
             </Select>
 
-            <BoletaTotal
-              pedidoID={order.id}
-              onFinishOrder={onFinishOrder}
-              buttonColor={buttonColor}
-              tipoPago={tipoPago}
-            />
+            <Button
+              size="sm"
+              onClick={onFinishOrder}
+              disabled={!tipoPago}
+              className={buttonColor}
+            >
+              <Check className="w-4 h-4" />
+              <span className="sr-only">Finalizar</span>
+            </Button>
           </div>
         </TableCell>
       </TableRow>
@@ -98,12 +100,12 @@ const OrderRow = ({
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">Escanea para pagar con Yape</DialogTitle>
           </DialogHeader>
-            <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center">
             <Image src={qrCode} alt="Código QR de Yape" width={224} height={224} className="object-cover" />
             <Button className="mt-4 bg-red-500 hover:bg-red-600 text-white" onClick={() => setIsModalOpen(false)}>
               <X className="w-4 h-4 mr-2" /> Cerrar
             </Button>
-            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { useEmpleadoStore } from "@/store/empleado";
 import { empleados, mesas } from "@prisma/client";
-import { X, PlusIcon, MinusIcon, Trash2, Printer } from "lucide-react";
+import { X, PlusIcon, MinusIcon, Trash2, Printer, Check } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { MesaOcupadaAgregar } from "./ModalAgregarPlato";
@@ -23,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-//import BoletaTotal from "@/boleta/BoletaTotal";
 import BoletaCocinaImprimir from "@/features/impresion-cocina/components/BoletaCocinaPrint";
 
 export const MesaOcupada = () => {
@@ -82,7 +81,7 @@ export const MesaOcupada = () => {
       fetchPedido();
       fetchMesas();
     } else {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   }, [fetchPedido, mesasParam]);
 
@@ -146,9 +145,9 @@ export const MesaOcupada = () => {
         const detallesActualizados = prevPedido.detalles.map((detalle: any) =>
           detalle.DetalleID === detalleId
             ? {
-                ...detalle,
-                Cantidad: detalle.Cantidad + 1,
-              }
+              ...detalle,
+              Cantidad: detalle.Cantidad + 1,
+            }
             : detalle
         );
         return {
@@ -509,12 +508,14 @@ export const MesaOcupada = () => {
                       </SelectContent>
                     </Select>
 
-                    <BoletaTotal
-                      pedidoID={pedido.PedidoID}
-                      onFinishOrder={handlePagarPedido}
-                      buttonColor={buttonColor}
-                      tipoPago={tipoPago}
-                    />
+                    <Button
+                      onClick={handlePagarPedido}
+                      disabled={!tipoPago}
+                      className={`${buttonColor} transition duration-200 ease-in-out transform hover:scale-105`}
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      Pagar
+                    </Button>
                   </div>
                 </div>
               </>
