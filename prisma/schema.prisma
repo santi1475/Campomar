@@ -1,13 +1,10 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -16,37 +13,34 @@ model auditoria {
   Operacion     String?   @db.VarChar(10)
   TablaAfectada String?   @db.VarChar(50)
   IDAfectado    Int?
-  Fecha         DateTime? @default(now()) @db.Timestamp(0)
+  Fecha         DateTime? @default(now()) @db.Timestamptz(6)
   Usuario       String?   @db.VarChar(50)
+  Activo        Boolean?  @default(true)
 }
 
 model empleados {
-  EmpleadoID     Int       @id @default(autoincrement())
-  Nombre         String?   @db.VarChar(100)
+  EmpleadoID     Int           @id @default(autoincrement())
+  Nombre         String?       @db.VarChar(100)
   TipoEmpleadoID Int?
-  DNI            String?   @unique(map: "DNI_UNIQUE") @db.Char(8)
-  Password       String?   @db.VarChar(255)
-  Activo         Boolean   @default(true) // <-- CAMPO AÑADIDO
+  DNI            String?       @unique @db.Char(8)
+  Password       String?       @db.VarChar(255)
+  Activo         Boolean?      @default(true)
   tipoempleado   tipoempleado? @relation(fields: [TipoEmpleadoID], references: [TipoEmpleadoID], onDelete: NoAction, onUpdate: NoAction, map: "empleados_ibfk_1")
   pedidos        pedidos[]
-
-  @@index([TipoEmpleadoID], map: "TipoEmpleadoID")
 }
 
 model pedidos {
   PedidoID       Int              @id @default(autoincrement())
-  EmpleadoID     Int?
-  Fecha          DateTime         @db.Timestamp(0)
-  Total          Decimal          @default(0.00) @db.Decimal(10, 2)
+  EmpleadoID     Int
+  Fecha          DateTime?        @default(now()) @db.Timestamptz(6)
+  Total          Decimal          @db.Decimal(10, 2)
   Estado         Boolean          @default(true)
   TipoPago       Int?
-  empleados      empleados?       @relation(fields: [EmpleadoID], references: [EmpleadoID], onDelete: NoAction, onUpdate: NoAction)
+  Activo         Boolean?         @default(true)
   detallepedidos detallepedidos[]
   pedido_mesas   pedido_mesas[]
+  empleados      empleados        @relation(fields: [EmpleadoID], references: [EmpleadoID], onDelete: NoAction, onUpdate: NoAction)
   tipopago       tipopago?        @relation(fields: [TipoPago], references: [TipoPagoID], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([EmpleadoID], map: "idx_EmpleadoID")
-  @@index([TipoPago], map: "pedidos_ibfk_3_idx")
 }
 
 model platos {
@@ -54,15 +48,15 @@ model platos {
   Descripcion    String?          @db.VarChar(255)
   Precio         Decimal?         @db.Decimal(10, 2)
   CategoriaID    Int
+  Activo         Boolean?         @default(true)
   detallepedidos detallepedidos[]
-  categorias     categorias       @relation(fields: [CategoriaID], references: [CategoriaID], onUpdate: NoAction)
-
-  @@index([CategoriaID], map: "platos_ibfk_1_idx")
+  categorias     categorias       @relation(fields: [CategoriaID], references: [CategoriaID], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model tipoempleado {
   TipoEmpleadoID Int         @id @default(autoincrement())
   Descripcion    String?     @db.VarChar(50)
+  Activo         Boolean?    @default(true)
   empleados      empleados[]
 }
 
@@ -70,41 +64,39 @@ model mesas {
   MesaID       Int            @id @default(autoincrement())
   NumeroMesa   Int
   Estado       String         @default("Libre") @db.VarChar(10)
+  Activo       Boolean?       @default(true)
   pedido_mesas pedido_mesas[]
 }
 
-// ============== MODELOS AÑADIDOS/CORREGIDOS ==============
-
 model pedido_mesas {
-  PedidoID Int
-  MesaID   Int
-  pedidos  pedidos @relation(fields: [PedidoID], references: [PedidoID], onDelete: Cascade)
-  mesas    mesas   @relation(fields: [MesaID], references: [MesaID], onDelete: Cascade)
-
-  @@id([PedidoID, MesaID])
-  @@index([MesaID], map: "fk_mesa_idx")
+  PedidoMesaID Int      @id @default(autoincrement())
+  PedidoID     Int?
+  MesaID       Int?
+  Activo       Boolean? @default(true)
+  mesas        mesas?   @relation(fields: [MesaID], references: [MesaID], onDelete: NoAction, onUpdate: NoAction)
+  pedidos      pedidos? @relation(fields: [PedidoID], references: [PedidoID], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model detallepedidos {
-  DetalleID Int     @id @default(autoincrement())
+  DetalleID Int      @id @default(autoincrement())
   PedidoID  Int
   PlatoID   Int
   Cantidad  Int
-  pedidos   pedidos @relation(fields: [PedidoID], references: [PedidoID], onDelete: Cascade)
-  platos    platos  @relation(fields: [PlatoID], references: [PlatoID])
-
-  @@index([PedidoID], map: "fk_pedido_idx")
-  @@index([PlatoID], map: "fk_plato_idx")
+  Activo    Boolean? @default(true)
+  pedidos   pedidos  @relation(fields: [PedidoID], references: [PedidoID], onDelete: NoAction, onUpdate: NoAction)
+  platos    platos   @relation(fields: [PlatoID], references: [PlatoID], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model categorias {
-  CategoriaID Int     @id @default(autoincrement())
-  Descripcion String  @db.VarChar(50)
+  CategoriaID Int      @id @default(autoincrement())
+  Descripcion String   @db.VarChar(255)
+  Activo      Boolean? @default(true)
   platos      platos[]
 }
 
 model tipopago {
-  TipoPagoID  Int     @id @default(autoincrement())
-  Descripcion String  @db.VarChar(50)
+  TipoPagoID  Int       @id @default(autoincrement())
+  Descripcion String?   @db.VarChar(45)
+  Activo      Boolean?  @default(true)
   pedidos     pedidos[]
 }
