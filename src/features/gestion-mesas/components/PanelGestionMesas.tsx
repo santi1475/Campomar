@@ -24,6 +24,7 @@ export const GestionMesas = () => {
     MesaID: 0,
     NumeroMesa: 0,
     Estado: "Libre",
+    Activo: true
   });
   const [editingTable, setEditingTable] = useState<mesas | null>(null);
   const [loadingTables, setLoadingTables] = useState<boolean>(false);
@@ -95,7 +96,7 @@ export const GestionMesas = () => {
 
         const mesa = await response.json();
         setTables([...tables, mesa]);
-        setNewTable({ MesaID: 0, Estado: "Libre", NumeroMesa: 0 });
+        setNewTable({ MesaID: 0, Estado: "Libre", NumeroMesa: 0, Activo: true });
       } catch (error) {
         console.error(error);
       } finally {
