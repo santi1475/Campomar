@@ -29,6 +29,7 @@ export const GestionPlatos = () => {
     Descripcion: "",
     Precio: 0,
     CategoriaID: 1,
+    Activo: true
   });
   const [editingDish, setEditingDish] = useState<PlatoCliente | null>(null);
   const [loadingDishes, setLoadingDishes] = useState<boolean>(false);
@@ -65,7 +66,7 @@ export const GestionPlatos = () => {
         if (!response.ok) throw new Error("Error al añadir el plato");
         const plato = await response.json();
         setDishes([...dishes, { ...plato, Precio: Number(plato.Precio) }]);
-        setNewDish({ PlatoID: 0, Descripcion: "", Precio: 0, CategoriaID: 1 });
+        setNewDish({ PlatoID: 0, Descripcion: "", Precio: 0, CategoriaID: 1, Activo: true });
       } catch (error) {
         console.error(error);
       } finally {
