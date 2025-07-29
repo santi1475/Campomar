@@ -1,15 +1,14 @@
 "use client"
 
 import type React from "react"
-
 import { useRef, useState } from "react"
-import { useReactToPrint } from "react-to-print"
 import BoletaCocina from "@/features/impresion-cocina/components/ComandaCocina"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Printer } from "lucide-react"
 
 interface BoletaCocinaImprimirProps {
+  pedidoId: number;
   mesas: {
     NumeroMesa: number
   }[]
@@ -19,22 +18,41 @@ interface BoletaCocinaImprimirProps {
     Cantidad: number
   }[]
   triggerButton?: React.ReactNode
-  comentario?: string // Nuevo: comentario opcional
+  comentario?: string
 }
 
-export default function BoletaCocinaImprimir({ mesas, orderItems, triggerButton, comentario }: BoletaCocinaImprimirProps) {
+export default function BoletaCocinaImprimir({ pedidoId, mesas, orderItems, triggerButton, comentario }: BoletaCocinaImprimirProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [isPrinting, setIsPrinting] = useState(false)
   const receiptRef = useRef<HTMLDivElement>(null)
 
-  // Configuración de impresión
-  const handlePrint = useReactToPrint({
-    contentRef: receiptRef,
-    documentTitle: `Boleta-Cocina-Mesa-${mesas.map((m) => m.NumeroMesa).join("-")}`,
-    onAfterPrint: () => {
-      console.log("Impresión completada.")
-      setIsOpen(false) // Cierra el diálogo después de imprimir
-    },
-  })
+  const handleReprint = async () => {
+    if (!pedidoId) {
+      alert("Error: No se proporcionó un ID de pedido para reimprimir.")
+      return
+    }
+    setIsPrinting(true)
+    try {
+      const response = await fetch("/api/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pedidoID: pedidoId, comentario }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "La impresora no respondió.")
+      }
+      
+      console.log("Reimpresión enviada a la impresora.")
+      setIsOpen(false)
+    } catch (error) {
+      console.error("Error al reimprimir:", error)
+      alert(`Error al reimprimir: ${error instanceof Error ? error.message : "Ocurrió un error"}`)
+    } finally {
+      setIsPrinting(false)
+    }
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -52,15 +70,14 @@ export default function BoletaCocinaImprimir({ mesas, orderItems, triggerButton,
           </DialogTitle>
         </DialogHeader>
         <div className="mt-4 max-h-[70vh] overflow-y-auto bg-white p-1 rounded">
-          {/* Boleta de Cocina */}
           <BoletaCocina ref={receiptRef} orderItems={orderItems} mesas={mesas} comentario={comentario} />
         </div>
         <div className="mt-4 flex justify-end space-x-2">
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
+          <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isPrinting}>
             Cancelar
           </Button>
-          <Button onClick={() => handlePrint()}>
-            <Printer className="w-4 h-4 mr-2" /> Imprimir
+          <Button onClick={handleReprint} disabled={isPrinting}>
+            <Printer className="w-4 h-4 mr-2" /> {isPrinting ? "Imprimiendo..." : "Reimprimir"}
           </Button>
         </div>
       </DialogContent>

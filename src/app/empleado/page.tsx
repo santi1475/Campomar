@@ -36,7 +36,7 @@ const EmpleadoPage = () => {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto">
       <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center items-center w-full">
         <CardEmpleado
           texto="Ver Sala"

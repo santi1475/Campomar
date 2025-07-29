@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useReactToPrint } from "react-to-print";
-import BoletaCocina from "@/features/impresion-cocina/components/ComandaCocina"; // Asegúrate de importar el componente correcto
+import BoletaCocina from "@/features/impresion-cocina/components/ComandaCocina";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,20 +18,46 @@ export default function BoletaCocinaDialog({
   orderItems,
 }: {
   mesas: any[];
-  handleRealizarPedido: () => void;
+  handleRealizarPedido: () => Promise<number | null>;
   orderItems: any[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [comentario, setComentario] = useState(""); // Estado para el comentario
-  const [showComentarioInput, setShowComentarioInput] = useState(false); // Mostrar input
+  const [comentario, setComentario] = useState("");
+  const [showComentarioInput, setShowComentarioInput] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  // Configuración de impresión
-  const handlePrint = useReactToPrint({
-    contentRef: receiptRef,
-    documentTitle: `Boleta-Cocina`,
-    onAfterPrint: () => console.log("Impresión completada."),
-  });
+  const handleFinalizeAndPrint = async () => {
+    setIsSubmitting(true);
+    try {
+      const pedidoID = await handleRealizarPedido();
+
+      if (pedidoID) {
+        const response = await fetch("/api/print", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pedidoID, comentario }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "La impresora no respondió.");
+        }
+        
+        console.log("Comanda enviada a la impresora.");
+      } else {
+        throw new Error("No se pudo crear el pedido, la impresión fue cancelada.");
+      }
+
+      setIsOpen(false);
+
+    } catch (error) {
+      console.error("Error en el proceso de finalizar e imprimir:", error);
+      alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -56,7 +81,6 @@ export default function BoletaCocinaDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="mt-4 max-h-[80vh] overflow-y-auto">
-          {/* Boleta de Cocina */}
           <BoletaCocina
             ref={receiptRef}
             orderItems={orderItems}
@@ -64,7 +88,6 @@ export default function BoletaCocinaDialog({
             comentario={comentario}
           />
         </div>
-        {/* Botón para mostrar input de comentario */}
         <div className="mt-4 flex flex-col gap-2">
           {!showComentarioInput ? (
             <Button
@@ -106,17 +129,18 @@ export default function BoletaCocinaDialog({
           )}
         </div>
         <div className="mt-4 flex justify-end space-x-2">
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
+          <Button 
+            variant="outline" 
+            onClick={() => setIsOpen(false)}
+            disabled={isSubmitting}
+          >
             Cerrar
           </Button>
           <Button
-            onClick={() => {
-              handlePrint && handlePrint();
-              handleRealizarPedido();
-              setIsOpen(false);
-            }}
+            onClick={handleFinalizeAndPrint}
+            disabled={isSubmitting}
           >
-            Imprimir
+            {isSubmitting ? "Procesando..." : "Finalizar e Imprimir"}
           </Button>
         </div>
       </DialogContent>

@@ -122,7 +122,7 @@ export default function MesaLibre({ mesas }: MesaProps) {
     return <div className="flex justify-center items-center h-[calc(100vh-8rem)]">Cargando...</div>
   }
 
-  const handleRealizarPedido = async () => {
+  const handleRealizarPedido = async (): Promise<number | null> => {
     try {
       const nuevoPedido = {
         EmpleadoID: empleado.EmpleadoID,
@@ -195,9 +195,12 @@ export default function MesaLibre({ mesas }: MesaProps) {
       setOrderItems([])
       router.push("/empleado")
       alert("Pedido realizado correctamente")
+      
+      return PedidoID // Retornamos el ID del pedido creado
     } catch (error) {
       console.error(error)
       alert("Ocurrió un error al realizar el pedido")
+      return null // Retornamos null si hay error
     }
   }
 
