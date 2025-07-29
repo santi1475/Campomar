@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     // Capturamos cualquier otro posible error.
     return NextResponse.json(
-      { message: "Error interno del servidor" },
+      { message: "Error al obtener los pedidos", error },
       { status: 500 }
     );
   }

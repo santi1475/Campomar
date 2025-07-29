@@ -65,17 +65,34 @@ export async function PUT(request: Request, { params }: Segments) {
       nuevaCantidad = Math.max(nuevaCantidad - 1, 1);
     }
 
-    const updatedDetallePedido = await prisma.detallepedidos.update({
-      where: {
-        DetalleID: parseInt(id),
-      },
-      data: {
-        PlatoID,
-        Cantidad: nuevaCantidad,
-      },
-    });
+    const updatedDetallePedido = await prisma.$transaction(async (tx) => {
+      const updated = await tx.detallepedidos.update({
+        where: {
+          DetalleID: parseInt(id),
+        },
+        data: {
+          PlatoID,
+          Cantidad: nuevaCantidad,
+        },
+      });
 
-    await recalcularTotal(detallePedido.PedidoID);
+      // Recalcular el total dentro de la transacción
+      const detalles = await tx.detallepedidos.findMany({
+        where: { PedidoID: detallePedido.PedidoID },
+        include: { platos: true },
+      });
+
+      const nuevoTotal = detalles.reduce((acc, detalle) => {
+        return acc + detalle.Cantidad * detalle.platos.Precio!.toNumber();
+      }, 0);
+
+      await tx.pedidos.update({
+        where: { PedidoID: detallePedido.PedidoID },
+        data: { Total: nuevoTotal },
+      });
+
+      return updated;
+    });
 
     return NextResponse.json(updatedDetallePedido);
   } catch (error) {
