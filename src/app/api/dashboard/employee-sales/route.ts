@@ -12,8 +12,7 @@ export async function GET(req: Request) {
       by: ["EmpleadoID"],
       _sum: { Total: true },
       where: {
-        Estado: { equals: false }, // Pedidos completados
-        EmpleadoID: { not: null }, // ¡Importante! Filtramos los pedidos sin empleado
+        Estado: { equals: false }, // Pedidos completadoss pedidos sin empleado
         Fecha: {
           gte: startDate ? new Date(startDate) : undefined,
           lte: endDate ? new Date(endDate) : undefined,
