@@ -10,15 +10,15 @@ interface EmpleadoLayoutProps {
 const EmpleadoLayout = ({ children }: EmpleadoLayoutProps) => {
   return (
     <EmpleadoLayoutWrapper>
-      <header>
+      <header className="w-full h-full">
         <Reloj />
       </header>
-      <div className="w-full h-full flex justify-center">{children}</div>
+      <main className="flex-1 w-full flex justify-center overflow-y-auto">{children}</main>
       <footer className="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-4 px-6 flex justify-between items-center w-full">
         <Logout />
         <p className="text-sm text-gray-400">© 2024 Campomar</p>
         <Sesion />
-    </footer>
+      </footer>
     </EmpleadoLayoutWrapper>
   );
 };

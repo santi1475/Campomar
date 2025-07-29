@@ -24,7 +24,7 @@ const EmpleadoLayoutWrapper = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col justify-between items-center gap-0">
+    <div className="min-h-screen w-full flex flex-col">
       {children}
     </div>
   );

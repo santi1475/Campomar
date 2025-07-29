@@ -1,25 +1,32 @@
 "use client";
 
 import { HomeIcon } from "lucide-react";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Link from "next/link";
 
 export const Reloj = () => {
   const timezone = "America/Lima";
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  const now = new Date(
-    new Date().toLocaleString("en-US", { timeZone: timezone })
-  );
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(
+        new Date(new Date().toLocaleString("en-US", { timeZone: timezone }))
+      );
+    }, 60000);
 
-  const formattedDate = format(now, "EEEE, d 'de' MMMM 'de' yyyy", {
+    return () => clearInterval(timer);
+  }, [timezone]);
+
+  const formattedDate = format(currentTime, "EEEE, d 'de' MMMM 'de' yyyy", {
     locale: es,
   });
-  const formattedTime = format(now, "HH:mm", { locale: es });
+  const formattedTime = format(currentTime, "HH:mm", { locale: es });
 
   return (
-    <div className="w-screen">
+    <div className="w-full h-full">
       <div className="h-2 bg-brandSecondary w-full"></div>
       <div className="w-full bg-white shadow-md">
         <div className="w-full flex justify-between items-center px-4 py-3 sm:px-6 lg:px-8">
