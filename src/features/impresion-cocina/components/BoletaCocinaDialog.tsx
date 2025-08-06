@@ -33,14 +33,25 @@ export default function BoletaCocinaDialog({
       const pedidoID = await handleRealizarPedido();
 
       if (pedidoID) {
-        const response = await fetch("/api/print", {
+        const configResponse = await fetch("/api/tunel_print");
+        if (!configResponse.ok) {
+          throw new Error("No se pudo obtener la configuración de la impresora.");
+        }
+        const config = await configResponse.json();
+        const printerUrl = config.valor; 
+
+        if (!printerUrl) {
+            throw new Error("La URL de la impresora no está configurada en la base de datos.");
+        }
+
+        const printResponse = await fetch(`${printerUrl}/print`, { 
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pedidoID, comentario }),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
+        if (!printResponse.ok) {
+          const errorData = await printResponse.json();
           throw new Error(errorData.message || "La impresora no respondió.");
         }
         

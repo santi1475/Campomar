@@ -11,7 +11,7 @@ interface BoletaCocinaProps {
   mesas: {
     NumeroMesa: number
   }[]
-  comentario?: string // Nuevo: comentario opcional
+  comentario?: string 
 }
 
 const BoletaCocina = forwardRef<HTMLDivElement, BoletaCocinaProps>(({ orderItems, mesas, comentario }, ref) => {

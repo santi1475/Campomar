@@ -100,3 +100,9 @@ model tipopago {
   Activo      Boolean?  @default(true)
   pedidos     pedidos[]
 }
+
+model configuracion {
+  id             Int     @id
+  nombre_setting String? @unique @map("nombre_setting") @db.Text
+  valor          String? @db.Text
+}
