@@ -111,26 +111,49 @@ export async function DELETE(request: Request, { params }: Segments) {
     );
   }
 
-  // --- Liberar las mesas si se cancela un pedido ---
-  const pedidoMesas = await prisma.pedido_mesas.findMany({
-    where: { PedidoID: pedidoId },
-  });
-  const mesaIds = pedidoMesas.map((pm) => pm.MesaID);
-  if (mesaIds.length > 0) {
-    await prisma.mesas.updateMany({
-      where: {
-        MesaID: { in: mesaIds.filter((id): id is number => id !== null) },
-      },
-      data: { Estado: "Libre" },
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Eliminar los detalles del pedido
+      await tx.detallepedidos.deleteMany({
+        where: { PedidoID: pedidoId },
+      });
+
+      // 2. Obtener y eliminar las relaciones pedido-mesas
+      const pedidoMesas = await tx.pedido_mesas.findMany({
+        where: { PedidoID: pedidoId },
+      });
+      const mesaIds = pedidoMesas.map((pm) => pm.MesaID);
+      
+      await tx.pedido_mesas.deleteMany({
+        where: { PedidoID: pedidoId },
+      });
+
+      // 3. Liberar las mesas
+      if (mesaIds.length > 0) {
+        await tx.mesas.updateMany({
+          where: {
+            MesaID: { in: mesaIds.filter((id): id is number => id !== null) },
+          },
+          data: { Estado: "Libre" },
+        });
+      }
+
+      // 4. Finalmente eliminar el pedido
+      const deletedPedido = await tx.pedidos.delete({
+        where: {
+          PedidoID: pedidoId,
+        },
+      });
+
+      return deletedPedido;
     });
+
+    return NextResponse.json({ message: "Pedido eliminado correctamente" });
+  } catch (error) {
+    console.error("Error al eliminar el pedido:", error);
+    return NextResponse.json(
+      { message: "Error al eliminar el pedido" }, 
+      { status: 500 }
+    );
   }
-  // --- Fin de la adición para DELETE ---
-
-  const deletedPedido = await prisma.pedidos.delete({
-    where: {
-      PedidoID: pedidoId,
-    },
-  });
-
-  return NextResponse.json(deletedPedido);
 }

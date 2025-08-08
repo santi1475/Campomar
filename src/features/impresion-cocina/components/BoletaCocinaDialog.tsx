@@ -27,48 +27,77 @@ export default function BoletaCocinaDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const handleFinalizeAndPrint = async () => {
-    setIsSubmitting(true);
-    try {
+const handleFinalizeAndPrint = async () => {setIsSubmitting(true);
+  try {
       const pedidoID = await handleRealizarPedido();
 
       if (pedidoID) {
-        const configResponse = await fetch("/api/tunel_print");
-        if (!configResponse.ok) {
-          throw new Error("No se pudo obtener la configuración de la impresora.");
-        }
-        const config = await configResponse.json();
-        const printerUrl = config.valor; 
+          console.log('Esperando 1 segundo para asegurar consistencia...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
 
-        if (!printerUrl) {
-            throw new Error("La URL de la impresora no está configurada en la base de datos.");
-        }
+          const configResponse = await fetch("/api/tunel_print");
+          if (!configResponse.ok) {
+              throw new Error("No se pudo obtener la configuración de la impresora.");
+          }
+          
+          const config = await configResponse.json();
+          const printerUrl = config.valor; 
 
-        const printResponse = await fetch(`${printerUrl}/print`, { 
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pedidoID, comentario }),
-        });
+          if (!printerUrl) {
+              throw new Error("La URL de la impresora no está configurada.");
+          }
 
-        if (!printResponse.ok) {
-          const errorData = await printResponse.json();
-          throw new Error(errorData.message || "La impresora no respondió.");
-        }
-        
-        console.log("Comanda enviada a la impresora.");
-      } else {
-        throw new Error("No se pudo crear el pedido, la impresión fue cancelada.");
+          console.log(`Enviando pedido ${pedidoID} a impresora en ${printerUrl}...`);
+          
+          // Primero verificar que el servidor está accesible
+          try {
+              const checkResponse = await fetch(printerUrl);
+              if (!checkResponse.ok) {
+                  throw new Error(`El servidor de impresión no está respondiendo correctamente. Status: ${checkResponse.status}`);
+              }
+          } catch (error) {
+              console.error("Error al verificar el servidor de impresión:", error);
+              throw new Error(`No se puede conectar al servidor de impresión. Verifica que ngrok esté ejecutándose y la URL ${printerUrl} sea correcta.`);
+          }
+
+          // Intentar imprimir
+          const printResponse = await fetch(`${printerUrl}/print`, { 
+              method: "POST",
+              headers: { 
+                  "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ pedidoID, comentario }),
+          });
+
+          if (!printResponse.ok) {
+              // Intentar obtener más detalles del error
+              let errorMessage;
+              try {
+                  const contentType = printResponse.headers.get("content-type");
+                  if (contentType && contentType.includes("application/json")) {
+                      const errorData = await printResponse.json();
+                      errorMessage = errorData.message || errorData.error;
+                  } else {
+                      const errorText = await printResponse.text();
+                      errorMessage = `Error del servidor: ${errorText.slice(0, 100)}...`;
+                  }
+              } catch (e) {
+                  errorMessage = `Error ${printResponse.status}: ${printResponse.statusText}`;
+              }
+              throw new Error(`Error al imprimir: ${errorMessage}`);
+          }
+          
+          console.log("✅ Comanda enviada a la impresora exitosamente.");
       }
-
+      
       setIsOpen(false);
-
-    } catch (error) {
-      console.error("Error en el proceso de finalizar e imprimir:", error);
+  } catch (error) {
+      console.error("❌ Error en el proceso:", error);
       alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`);
-    } finally {
+  } finally {
       setIsSubmitting(false);
-    }
-  };
+  }
+};
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
