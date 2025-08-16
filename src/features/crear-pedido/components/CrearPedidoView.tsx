@@ -9,7 +9,7 @@ import type { empleados, mesas, platos } from "@prisma/client"
 import { useEmpleadoStore } from "@/store/empleado"
 import { useRouter } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import BoletaCocinaDialog from "@/features/impresion-cocina/components/BoletaCocinaDialog"
+import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 interface MesaProps {
@@ -368,10 +368,15 @@ export default function MesaLibre({ mesas }: MesaProps) {
                         <span className="text-xl font-bold">S/. {total.toFixed(2)}</span>
                       </div>
                       <div className="w-full">
-                        <BoletaCocinaDialog
+                        <BoletaCocinaModal
+                          mode="crear"
                           mesas={mesas}
                           handleRealizarPedido={handleRealizarPedido}
-                          orderItems={orderItems}
+                          orderItems={orderItems.map(item => ({
+                            PlatoID: item.PlatoID,
+                            Descripcion: item.Descripcion || '',
+                            Cantidad: item.Cantidad
+                          }))}
                         />
                       </div>
                     </div>
@@ -533,7 +538,11 @@ export default function MesaLibre({ mesas }: MesaProps) {
                   <span className="text-lg font-semibold">Total:</span>
                   <span className="text-xl font-bold">S/. {total.toFixed(2)}</span>
                 </div>
-                <BoletaCocinaDialog mesas={mesas} handleRealizarPedido={handleRealizarPedido} orderItems={orderItems} />
+                <BoletaCocinaModal mode="crear" mesas={mesas} handleRealizarPedido={handleRealizarPedido} orderItems={orderItems.map(item => ({
+                  PlatoID: item.PlatoID,
+                  Descripcion: item.Descripcion || '',
+                  Cantidad: item.Cantidad
+                }))} />
               </div>
             )}
           </div>

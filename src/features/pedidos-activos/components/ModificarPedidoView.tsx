@@ -9,7 +9,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import { MesaOcupadaAgregar } from "./ModalAgregarPlato"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import BoletaCocinaImprimir from "@/features/impresion-cocina/components/BoletaCocinaPrint"
+import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export const MesaOcupada = () => {
@@ -298,7 +298,8 @@ export const MesaOcupada = () => {
                     </Button>
 
                     {pedido && (
-                      <BoletaCocinaImprimir
+                      <BoletaCocinaModal
+                        mode="reimprimir"
                         pedidoId={pedido.PedidoID}
                         mesas={selectedTables}
                         orderItems={
@@ -308,7 +309,7 @@ export const MesaOcupada = () => {
                             Cantidad: detalle.Cantidad,
                           })) || []
                         }
-                        comentario={comentarioCocina}
+                        initialComentario={comentarioCocina}
                         triggerButton={
                           <Button
                             className="w-full text-sm sm:text-base transition duration-200 ease-in-out transform hover:scale-105 bg-blue-600"

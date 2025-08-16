@@ -8,15 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model auditoria {
-  AuditoriaID   Int       @id @default(autoincrement())
-  Operacion     String?   @db.VarChar(10)
-  TablaAfectada String?   @db.VarChar(50)
-  IDAfectado    Int?
-  Fecha         DateTime? @default(now()) @db.Timestamptz(6)
-  Usuario       String?   @db.VarChar(50)
-  Activo        Boolean?  @default(true)
-}
 
 model empleados {
   EmpleadoID     Int           @id @default(autoincrement())
@@ -37,10 +28,12 @@ model pedidos {
   Estado         Boolean          @default(true)
   TipoPago       Int?
   Activo         Boolean?         @default(true)
+
   detallepedidos detallepedidos[]
   pedido_mesas   pedido_mesas[]
   empleados      empleados        @relation(fields: [EmpleadoID], references: [EmpleadoID], onDelete: NoAction, onUpdate: NoAction)
   tipopago       tipopago?        @relation(fields: [TipoPago], references: [TipoPagoID], onDelete: NoAction, onUpdate: NoAction)
+  comandas_cocina  comandas_cocina[]
 }
 
 model platos {
@@ -101,8 +94,12 @@ model tipopago {
   pedidos     pedidos[]
 }
 
-model configuracion {
-  id             Int     @id
-  nombre_setting String? @unique @map("nombre_setting") @db.Text
-  valor          String? @db.Text
+model comandas_cocina {
+  ComandaID        Int       @id @default(autoincrement())
+  PedidoID         Int
+  Comentario       String?   @db.Text
+  EstadoImpresion  String    @default("pendiente") @db.VarChar(20)
+  FechaCreacion    DateTime  @default(now()) @db.Timestamptz(6)
+  
+  pedido           pedidos   @relation(fields: [PedidoID], references: [PedidoID])
 }

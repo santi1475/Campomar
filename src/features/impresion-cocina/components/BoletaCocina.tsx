@@ -67,4 +67,3 @@ const BoletaCocina = forwardRef<HTMLDivElement, BoletaCocinaProps>(({ orderItems
 BoletaCocina.displayName = "BoletaCocina"
 
 export default BoletaCocina
-
