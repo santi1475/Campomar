@@ -43,7 +43,6 @@ export default function BoletaCocinaModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const receiptRef = useRef<HTMLDivElement>(null)
 
-  // Función para crear nuevo pedido
   const handleFinalizeAndPrint = async () => {
     if (mode !== 'crear' || !handleRealizarPedido) return
     
@@ -51,12 +50,27 @@ export default function BoletaCocinaModal({
     try {
       const pedidoID = await handleRealizarPedido()
 
-      if (pedidoID) {
-        console.log(`✅ Pedido ${pedidoID} creado y marcado para impresión.`)
-        setIsOpen(false)
-      } else {
+      if (!pedidoID) {
         throw new Error("No se pudo crear el pedido.")
       }
+
+      const comandaResponse = await fetch('/api/comanda-cocina', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pedidoID,
+          comentario,
+        }),
+      })
+
+      if (!comandaResponse.ok) {
+        const error = await comandaResponse.json()
+        throw new Error(error.message || 'Error al crear la comanda')
+      }
+
+      const comanda = await comandaResponse.json()
+      console.log(`✅ Pedido ${pedidoID} creado y comanda ${comanda.ComandaID} generada para impresión.`)
+      setIsOpen(false)
     } catch (error) {
       console.error("Error en el proceso:", error)
       alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`)
@@ -65,60 +79,30 @@ export default function BoletaCocinaModal({
     }
   }
 
-  // Función para reimprimir pedido existente
   const handleReprint = async () => {
     if (mode !== 'reimprimir' || !pedidoId) return
     
     setIsSubmitting(true)
     try {
-      console.log(`Reimprimiendo pedido ${pedidoId}...`)
+      console.log(`Creando comanda para reimpresión del pedido ${pedidoId}...`)
       
-      console.log('Esperando 1 segundo para asegurar consistencia...')
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const configResponse = await fetch("/api/tunel_print")
-      if (!configResponse.ok) {
-        throw new Error("No se pudo obtener la configuración de la impresora.")
-      }
-      
-      const config = await configResponse.json()
-      const printerUrl = config.valor
-
-      if (!printerUrl) {
-        throw new Error("La URL de la impresora no está configurada en la base de datos.")
-      }
-
-      // Validar que la URL es válida y está accesible
-      try {
-        console.log(`Verificando conexión con la impresora en ${printerUrl}...`)
-        const checkResponse = await fetch(printerUrl)
-        if (!checkResponse.ok) {
-          throw new Error("No se pudo conectar con el servidor de impresión.")
-        }
-      } catch (error) {
-        throw new Error("El servidor de impresión no está disponible. Verifica la URL y que el servidor esté en funcionamiento.")
-      }
-
-      console.log(`Enviando pedido ${pedidoId} a impresora...`)
-      const printResponse = await fetch(`${printerUrl}/print`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pedidoID: pedidoId, comentario }),
+      const comandaResponse = await fetch('/api/comanda-cocina', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pedidoID: pedidoId,
+          comentario,
+        }),
       })
 
-      if (!printResponse.ok) {
-        let errorMessage
-        const contentType = printResponse.headers.get("content-type")
-        if (contentType && contentType.includes("application/json")) {
-          const errorData = await printResponse.json()
-          errorMessage = errorData.message
-        } else {
-          errorMessage = "Error del servidor de impresión. Por favor, verifica la configuración."
-        }
-        throw new Error(errorMessage || "La impresora no respondió correctamente.")
+      if (!comandaResponse.ok) {
+        const error = await comandaResponse.json()
+        throw new Error(error.message || 'Error al crear la comanda')
       }
-      
-      console.log("✅ Comanda reenviada a la impresora exitosamente.")
+
+      const comanda = await comandaResponse.json()
+      console.log(`✅ Comanda ${comanda.ComandaID} creada exitosamente para el pedido ${pedidoId}`)
+
       setIsOpen(false)
     } catch (error) {
       console.error("❌ Error en el proceso:", error)

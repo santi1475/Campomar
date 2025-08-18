@@ -25,7 +25,6 @@ export const MesaOcupada = () => {
   const [comentarioCocina, setComentarioCocina] = useState("")
   const [showComentarioInput, setShowComentarioInput] = useState(false)
 
-  // Llamada a la API para obtener el pedido relacionado con esas mesas
   const fetchPedido = useCallback(async () => {
     setIsLoading(true)
     setError(null)

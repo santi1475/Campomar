@@ -15,6 +15,22 @@ export async function POST(req: NextRequest) {
         Comentario: comentario,
         EstadoImpresion: "pendiente",
       },
+      include: {
+        pedido: {
+          include: {
+            detallepedidos: {
+              include: {
+                platos: true
+              }
+            },
+            pedido_mesas: {
+              include: {
+                mesas: true
+              }
+            }
+          }
+        }
+      }
     });
 
     return NextResponse.json(nuevaComanda);

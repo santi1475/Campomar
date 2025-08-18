@@ -135,7 +135,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido }: Props) => {
     }
   }
 
-  // Calcular totales
   const totalItems = orderItems.reduce((acc, item) => acc + item.Cantidad, 0)
   const totalAmount = orderItems.reduce((acc, item) => acc + Number(item.Precio ?? 0) * item.Cantidad, 0).toFixed(2)
 
