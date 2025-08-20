@@ -5,9 +5,11 @@ import OrderTableBody from "./OrderTableBody";
 const OrderTable = ({
   searchTerm,
   refreshKey,
+  onDataMutation,
 }: {
   searchTerm: string;
   refreshKey: number;
+  onDataMutation: () => void;
 }) => {
   return (
     <div className="rounded-md border">
@@ -16,7 +18,7 @@ const OrderTable = ({
           <OrderTableHeader />
         </TableHeader>
         <TableBody>
-          <OrderTableBody searchTerm={searchTerm} refreshKey={refreshKey} />
+          <OrderTableBody searchTerm={searchTerm} refreshKey={refreshKey} onDataMutation={onDataMutation} />
         </TableBody>
       </Table>
     </div>

@@ -48,7 +48,11 @@ const OrdersPage = () => {
             </Button>
           </div>
           <div className="flex-1 overflow-auto">
-            <OrderTable searchTerm={searchTerm} refreshKey={refreshKey} />
+            <OrderTable 
+              searchTerm={searchTerm} 
+              refreshKey={refreshKey}
+              onDataMutation={handleRefresh}
+            />
           </div>
         </CardContent>
       </Card>

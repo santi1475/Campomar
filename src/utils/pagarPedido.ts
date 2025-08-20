@@ -5,7 +5,7 @@ export const pagarPedido = async (pedido: pedidos) => {
     method: "PUT",
     body: JSON.stringify({
       ...pedido,
-      Estado: 0,
+      Estado: false,
     }),
   });
 

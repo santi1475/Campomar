@@ -226,7 +226,7 @@ export const MesaOcupada = () => {
         },
         body: JSON.stringify({
           ...pedido,
-          Estado: 0,
+          Estado: false,
           Fecha: new Date(),
           TipoPago: tipoPago,
         }),

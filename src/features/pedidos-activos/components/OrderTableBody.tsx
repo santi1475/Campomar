@@ -16,9 +16,11 @@ import { Loader2 } from "lucide-react";
 const OrderTableBody = ({
   searchTerm,
   refreshKey,
+  onDataMutation,
 }: {
   searchTerm: string;
   refreshKey: number;
+  onDataMutation: () => void;
 }) => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -69,9 +71,10 @@ const OrderTableBody = ({
       });
 
       if (response.ok) {
-        setOrders((prevOrders) =>
-          prevOrders.filter((order) => order.PedidoID !== orderId)
-        );
+        // Notificar al padre para refrescar los datos
+        onDataMutation();
+        
+        // Limpiar el tipo de pago del pedido finalizado
         setTipoPago((prev) => {
           const updated = { ...prev };
           delete updated[orderId];
