@@ -68,31 +68,44 @@ const OrderTableBody = ({
 
   const handleFinishOrder = async (orderId: number) => {
     try {
+      setLoading(true);
+      console.log('Cliente: Iniciando finalización del pedido:', orderId);
+      
       const response = await fetch(`/api/pedidos/${orderId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          Estado: 0,
+          Estado: false,
           Fecha: new Date(),
           TipoPago: tipoPago[orderId],
         }),
       });
 
+      const data = await response.json();
+      
       if (response.ok) {
-        onDataMutation();
+        console.log('Cliente: Pedido finalizado exitosamente:', data);
+        
+        setOrders(prevOrders => prevOrders.filter(order => order.PedidoID !== orderId));
         
         setTipoPago((prev) => {
           const updated = { ...prev };
           delete updated[orderId];
           return updated;
         });
+        
+        onDataMutation();
       } else {
-        console.error("Error al finalizar pedido.");
+        console.error("Cliente: Error al finalizar pedido:", data.error || "Error desconocido");
+        setError(data.error || "Error al finalizar el pedido");
       }
     } catch (error) {
-      console.error("Error al finalizar pedido:", error);
+      console.error("Cliente: Error al finalizar pedido:", error);
+      setError(error instanceof Error ? error.message : "Error al finalizar el pedido");
+    } finally {
+      setLoading(false);
     }
   };
 

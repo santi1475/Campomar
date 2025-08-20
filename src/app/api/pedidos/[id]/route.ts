@@ -39,58 +39,83 @@ export async function PUT(request: Request, { params }: Segments) {
   const { id } = params;
   const pedidoId = parseInt(id);
 
-  try {
-    const { EmpleadoID, Fecha, Total, Estado, TipoPago } =
-      await putSchema.validate(await request.json());
+  console.log('API: Iniciando actualización de pedido:', pedidoId);
 
-    const updatedPedido = await prisma.pedidos.update({
-      where: {
-        PedidoID: pedidoId,
-      },
-      data: {
-        EmpleadoID,
-        Fecha,
-        Total,
-        Estado,
-        TipoPago,
-      },
+  try {
+    const body = await request.json();
+    console.log('API: Datos recibidos:', body);
+
+    const { EmpleadoID, Fecha, Total, Estado, TipoPago } =
+      await putSchema.validate(body);
+
+    console.log('API: Datos validados:', { EmpleadoID, Fecha, Total, Estado, TipoPago });
+
+    const existingPedido = await prisma.pedidos.findUnique({
+      where: { PedidoID: pedidoId },
+      include: {
+        pedido_mesas: true
+      }
     });
 
-    // =================== LÓGICA PARA LIBERAR MESAS ===================
-    // Si el pedido se ha marcado como inactivo (pagado), liberamos las mesas.
-    if (Estado === false) {
-      await prisma.$transaction(async (tx) => {
-        // 1. Encontrar todas las relaciones pedido-mesa para este pedido.
-        const pedidoMesas = await tx.pedido_mesas.findMany({
-          where: {
-            PedidoID: pedidoId,
-          },
-        });
+    if (!existingPedido) {
+      console.log('API: Pedido no encontrado:', pedidoId);
+      return NextResponse.json(
+        { error: "Pedido no encontrado" },
+        { status: 404 }
+      );
+    }
 
-        // 2. Obtener los IDs de todas las mesas asociadas.
-        const mesaIds = pedidoMesas.map((pm) => pm.MesaID);
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedPedido = await tx.pedidos.update({
+        where: { PedidoID: pedidoId },
+        data: {
+          EmpleadoID,
+          Fecha,
+          Total,
+          Estado,
+          TipoPago,
+        },
+      });
 
-        // 3. Actualizar el estado de todas esas mesas a "Libre".
+      console.log('API: Pedido actualizado:', updatedPedido);
+
+      if (Estado === false) {
+        console.log('API: Liberando mesas asociadas al pedido');
+        
+        const mesaIds = existingPedido.pedido_mesas.map(pm => pm.MesaID);
+        
         if (mesaIds.length > 0) {
-          await tx.mesas.updateMany({
+          const mesasActualizadas = await tx.mesas.updateMany({
             where: {
               MesaID: {
                 in: mesaIds.filter((id): id is number => id !== null),
               },
             },
-            data: {
-              Estado: "Libre",
-            },
+            data: { Estado: "Libre" },
           });
+          
+          console.log('API: Mesas actualizadas:', mesasActualizadas);
         }
-      });
-    }
-    // =================== FIN DE LA LÓGICA ===================
+      }
 
-    return NextResponse.json(updatedPedido);
+      return updatedPedido;
+    });
+
+    console.log('API: Transacción completada exitosamente');
+    
+    return NextResponse.json({
+      success: true,
+      data: result,
+      message: "Pedido actualizado correctamente"
+    });
+
   } catch (error) {
-    console.error("Error al actualizar el pedido:", error);
-    return NextResponse.json(error, { status: 400 });
+    console.error("API: Error al actualizar el pedido:", error);
+    return NextResponse.json({
+      success: false,
+      error: "Error al actualizar el pedido",
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 400 });
   }
 }
 
@@ -113,12 +138,10 @@ export async function DELETE(request: Request, { params }: Segments) {
 
   try {
     await prisma.$transaction(async (tx) => {
-      // 1. Eliminar los detalles del pedido
       await tx.detallepedidos.deleteMany({
         where: { PedidoID: pedidoId },
       });
 
-      // 2. Obtener y eliminar las relaciones pedido-mesas
       const pedidoMesas = await tx.pedido_mesas.findMany({
         where: { PedidoID: pedidoId },
       });
@@ -128,7 +151,6 @@ export async function DELETE(request: Request, { params }: Segments) {
         where: { PedidoID: pedidoId },
       });
 
-      // 3. Liberar las mesas
       if (mesaIds.length > 0) {
         await tx.mesas.updateMany({
           where: {
@@ -138,7 +160,6 @@ export async function DELETE(request: Request, { params }: Segments) {
         });
       }
 
-      // 4. Finalmente eliminar el pedido
       const deletedPedido = await tx.pedidos.delete({
         where: {
           PedidoID: pedidoId,
