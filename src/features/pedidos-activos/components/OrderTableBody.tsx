@@ -24,6 +24,7 @@ const OrderTableBody = ({
 }) => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [tipoPago, setTipoPago] = useState<Record<number, number | null>>({});
 
@@ -37,17 +38,26 @@ const OrderTableBody = ({
   useEffect(() => {
     const fetchOrders = async () => {
       try {
+        console.log('Cliente: Iniciando fetch de pedidos');
         const response = await fetch("/api/pedido-platos");
         const data = await response.json();
-        console.log(data.data);
+        
+        console.log('Cliente: Respuesta del servidor:', data);
 
-        if (response.ok) {
+        if (response.ok && data.success) {
+          console.log('Cliente: Pedidos obtenidos correctamente:', {
+            totalPedidos: data.debug?.totalPedidos,
+            pedidosActivos: data.debug?.pedidosActivos,
+            pedidosConDetalles: data.debug?.pedidosConDetalles
+          });
           setOrders(data.data);
         } else {
-          console.error("Error al cargar pedidos:", data.error);
+          console.error("Cliente: Error al cargar pedidos:", data.error, data.errorDetails);
+          setError(data.errorDetails || data.error || "Error al cargar los pedidos");
         }
       } catch (error) {
-        console.error("Error al hacer fetch:", error);
+        console.error("Cliente: Error al hacer fetch:", error);
+        setError(error instanceof Error ? error.message : "Error al cargar los pedidos");
       } finally {
         setLoading(false);
       }
@@ -71,10 +81,8 @@ const OrderTableBody = ({
       });
 
       if (response.ok) {
-        // Notificar al padre para refrescar los datos
         onDataMutation();
         
-        // Limpiar el tipo de pago del pedido finalizado
         setTipoPago((prev) => {
           const updated = { ...prev };
           delete updated[orderId];
@@ -90,13 +98,13 @@ const OrderTableBody = ({
 
   const filteredOrders = orders.filter(
     (order) =>
-      order.Estado && // Solo mostrar pedidos activos
+      order.Estado && 
       order.pedido_mesas.some((pedidoMesa: any) =>
         pedidoMesa.mesas.NumeroMesa.toString().includes(searchTerm)
       )
   );
 
-  if (loading)
+  if (loading) {
     return (
       <TableRow>
         <TableCell colSpan={6} className="h-24 text-center">
@@ -105,6 +113,41 @@ const OrderTableBody = ({
         </TableCell>
       </TableRow>
     );
+  }
+  
+  if (error) {
+    return (
+      <TableRow>
+        <TableCell colSpan={6} className="h-24 text-center text-red-600">
+          <div className="flex flex-col items-center gap-2">
+            <span>Error: {error}</span>
+            <Button variant="outline" onClick={() => {
+              setError(null);
+              setLoading(true);
+              const fetchOrders = async () => {
+                try {
+                  const response = await fetch("/api/pedido-platos");
+                  const data = await response.json();
+                  if (response.ok && data.success) {
+                    setOrders(data.data);
+                  } else {
+                    setError(data.errorDetails || data.error || "Error al cargar los pedidos");
+                  }
+                } catch (error) {
+                  setError(error instanceof Error ? error.message : "Error al cargar los pedidos");
+                } finally {
+                  setLoading(false);
+                }
+              };
+              fetchOrders();
+            }}>
+              Reintentar
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  }
 
   return (
     <>
