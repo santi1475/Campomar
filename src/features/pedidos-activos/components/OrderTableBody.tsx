@@ -88,7 +88,14 @@ const OrderTableBody = ({
       if (response.ok) {
         console.log('Cliente: Pedido finalizado exitosamente:', data);
         
-        setOrders(prevOrders => prevOrders.filter(order => order.PedidoID !== orderId));
+        // Recargar los pedidos inmediatamente después de finalizar uno
+        const updatedResponse = await fetch("/api/pedido-platos");
+        const updatedData = await updatedResponse.json();
+        
+        if (updatedResponse.ok && updatedData.success) {
+          console.log('Cliente: Actualizando lista de pedidos después del pago');
+          setOrders(updatedData.data);
+        }
         
         setTipoPago((prev) => {
           const updated = { ...prev };
