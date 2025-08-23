@@ -22,8 +22,6 @@ export const MesaOcupada = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const [tipoPago, setTipoPago] = useState<number | null>(null)
-  const [comentarioCocina, setComentarioCocina] = useState("")
-  const [showComentarioInput, setShowComentarioInput] = useState(false)
 
   const fetchPedido = useCallback(async () => {
     setIsLoading(true)
@@ -286,7 +284,11 @@ export const MesaOcupada = () => {
 
                   {/* Controles */}
                   <div className="space-y-3 sm:space-y-4">
-                    <MesaOcupadaAgregar addPlatoToPedido={addPlatoToPedido} pedido={pedido} />
+                    <MesaOcupadaAgregar 
+                      addPlatoToPedido={addPlatoToPedido} 
+                      pedido={pedido} 
+                      onPedidoUpdated={fetchPedido}
+                    />
 
                     <Button
                       variant="destructive"
@@ -308,7 +310,6 @@ export const MesaOcupada = () => {
                             Cantidad: detalle.Cantidad,
                           })) || []
                         }
-                        initialComentario={comentarioCocina}
                         triggerButton={
                           <Button
                             className="w-full text-sm sm:text-base transition duration-200 ease-in-out transform hover:scale-105 bg-blue-600"
@@ -318,47 +319,6 @@ export const MesaOcupada = () => {
                           </Button>
                         }
                       />
-                    )}
-
-                    {/* Comentario para cocina */}
-                    {!showComentarioInput ? (
-                      <Button
-                        variant="secondary"
-                        className="w-full text-sm sm:text-base"
-                        onClick={() => setShowComentarioInput(true)}
-                      >
-                        Agregar instrucción para cocina
-                      </Button>
-                    ) : (
-                      <div className="space-y-2">
-                        <textarea
-                          className="border rounded p-2 w-full text-sm resize-none"
-                          rows={3}
-                          placeholder="Escribe una instrucción para la cocina..."
-                          value={comentarioCocina}
-                          onChange={(e) => setComentarioCocina(e.target.value)}
-                          autoFocus
-                        />
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setComentarioCocina("")
-                              setShowComentarioInput(false)
-                            }}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => setShowComentarioInput(false)}
-                            disabled={comentarioCocina.trim() === ""}
-                          >
-                            Guardar
-                          </Button>
-                        </div>
-                      </div>
                     )}
 
                     <Button

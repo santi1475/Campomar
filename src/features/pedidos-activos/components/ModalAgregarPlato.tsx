@@ -16,25 +16,40 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Search, Trash } from "lucide-react"
 import type { platos } from "@prisma/client"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal"
 
 interface Props {
   addPlatoToPedido: (platoId: number, cantidad: number) => Promise<void>
-  pedido: any
+  onPedidoUpdated: () => Promise<void>
+  pedido: {
+    PedidoID: number
+    detalles: Array<{
+      PlatoID: number
+      descripcionPlato: string
+      Cantidad: number
+      PrecioUnitario: number
+    }>
+    mesas: Array<{
+      NumeroMesa: number
+      MesaID: number
+    }>
+  } | null
 }
 
 interface PedidoItem extends platos {
   Cantidad: number
 }
 
-export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido }: Props) => {
+export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }: Props) => {
   const [orderItems, setOrderItems] = useState<PedidoItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [platos, setPlatos] = useState<PedidoItem[]>([])
   const [filteredPlatos, setFilteredPlatos] = useState<PedidoItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filterCategory, setFilterCategory] = useState<string>("")
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // useEffect para hacer fetch de los platos
   useEffect(() => {
     const fetchPlatos = async () => {
       try {
@@ -63,7 +78,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido }: Props) => {
 
   useEffect(() => {
     const filtered = platos.filter((plato) => plato.Descripcion!.toLowerCase().includes(searchTerm.toLowerCase()))
-    // código para filtar por categoría
+
     const categoryFiltered = filtered.filter((plato) => {
       if (filterCategory === "todos" || filterCategory === "") {
         return true
@@ -109,7 +124,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido }: Props) => {
 
   useEffect(() => {
     const filtered = platos.filter((plato) => plato.Descripcion!.toLowerCase().includes(searchTerm.toLowerCase()))
-    // código para filtar por categoría
+
     const categoryFiltered = filtered.filter((plato) => {
       if (filterCategory === "todos" || filterCategory === "") {
         return true
@@ -123,23 +138,12 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido }: Props) => {
     return <div>Cargando...</div>
   }
 
-  const handleAddPlatos = async () => {
-    setIsLoading(true)
-    try {
-      await Promise.all(orderItems.map((item) => addPlatoToPedido(item.PlatoID, item.Cantidad)))
-      setOrderItems([]) // Limpia el carrito después de agregar
-    } catch (error) {
-      console.error("Error al agregar los platos:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const totalItems = orderItems.reduce((acc, item) => acc + item.Cantidad, 0)
   const totalAmount = orderItems.reduce((acc, item) => acc + Number(item.Precio ?? 0) * item.Cantidad, 0).toFixed(2)
 
   return (
-    <Dialog>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
           <Plus className="w-4 h-4 mr-2" />
@@ -276,9 +280,50 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido }: Props) => {
               <span className="font-bold text-lg">S/. {totalAmount}</span>
             </div>
           </div>
-          <Button onClick={handleAddPlatos} disabled={isLoading}>
-            Agregar platos
-          </Button>
+          {pedido && (
+            <BoletaCocinaModal
+              mode="reimprimir"
+              pedidoId={pedido.PedidoID}
+              mesas={pedido.mesas || []}
+              orderItems={orderItems.map(item => ({
+                PlatoID: item.PlatoID,
+                Descripcion: item.Descripcion || '',
+                Cantidad: item.Cantidad
+              }))}
+              handleRealizarPedido={async () => {
+                if (!pedido) return null;
+                
+                try {
+                  setIsSubmitting(true);
+                  
+                  await Promise.all(orderItems.map((item) => 
+                    addPlatoToPedido(item.PlatoID, item.Cantidad)
+                  ));
+                  await onPedidoUpdated();
+                  setOrderItems([]);
+                  
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  
+                  setDialogOpen(false);
+                  
+                  return pedido.PedidoID;
+                } catch (error) {
+                  console.error("Error al agregar los platos:", error);
+                  alert("Error al agregar los platos: " + (error instanceof Error ? error.message : "Error desconocido"));
+                  return null;
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+              triggerButton={
+                <Button disabled={isLoading || orderItems.length === 0}>
+                  Agregar platos y generar comanda
+                </Button>
+              }
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>

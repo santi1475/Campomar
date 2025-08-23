@@ -47,7 +47,8 @@ export async function POST(req: NextRequest) {
       data: {
         EmpleadoID,
         Fecha,
-        Total: Total ?? 0
+        Total: Total ?? 0,
+        Estado: true 
       },
     });
 
