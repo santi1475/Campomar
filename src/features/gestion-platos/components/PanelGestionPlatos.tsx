@@ -23,6 +23,7 @@ type PlatoCliente = Omit<platos, 'Precio'> & {
 };
 
 export const GestionPlatos = () => {
+
   const [dishes, setDishes] = useState<PlatoCliente[]>([]);
   const [newDish, setNewDish] = useState<PlatoCliente>({
     PlatoID: 0,
@@ -34,6 +35,7 @@ export const GestionPlatos = () => {
   const [editingDish, setEditingDish] = useState<PlatoCliente | null>(null);
   const [loadingDishes, setLoadingDishes] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [categoryOptions, setCategoryOptions] = useState<{ value: string; label: string }[]>([]);
 
   useEffect(() => {
     const fetchDishes = async () => {
@@ -52,6 +54,20 @@ export const GestionPlatos = () => {
       }
     };
     fetchDishes();
+
+    const fetchCategorias = async () => {
+      try {
+        const response = await fetch("/api/categorias", { method: "GET" });
+        if (!response.ok) throw new Error("Error al obtener las categorías");
+        const data = await response.json();
+        setCategoryOptions(
+          data.map((cat: any) => ({ value: cat.CategoriaID.toString(), label: cat.Descripcion }))
+        );
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchCategorias();
   }, []);
 
   const handleAddDish = async () => {
@@ -120,12 +136,6 @@ export const GestionPlatos = () => {
     dish.Descripcion?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const categoryOptions = [
-    { value: "1", label: "Criollo" },
-    { value: "2", label: "Bebida" },
-    { value: "3", label: "Porcion" },
-    { value: "4", label: "Caldo" },
-  ];
 
   return (
     <TabsContent value="dishes">
