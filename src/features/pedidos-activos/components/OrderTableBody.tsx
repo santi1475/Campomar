@@ -116,13 +116,18 @@ const OrderTableBody = ({
     }
   };
 
+  // Mostrar todos los pedidos activos, sin filtrar por searchTerm
+  console.log('Cliente: Pedidos recibidos del backend:', orders);
   const filteredOrders = orders.filter(
-    (order) =>
-      order.Estado && 
-      order.pedido_mesas.some((pedidoMesa: any) =>
-        pedidoMesa.mesas.NumeroMesa.toString().includes(searchTerm)
-      )
+    (order) => {
+      const isActive = order.Estado;
+      if (!isActive) {
+        console.log(`Cliente: Pedido ${order.PedidoID} filtrado por Estado FALSE`);
+      }
+      return isActive;
+    }
   );
+  console.log('Cliente: Pedidos después de filtrar por Estado:', filteredOrders);
 
   if (loading) {
     return (
