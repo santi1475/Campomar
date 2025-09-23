@@ -39,7 +39,7 @@ const OrderTableBody = ({
     const fetchOrders = async () => {
       try {
         console.log('Cliente: Iniciando fetch de pedidos');
-        const response = await fetch("/api/pedido-platos");
+        const response = await fetch("/api/pedido-platos", { cache: "no-store" });
         const data = await response.json();
         
         console.log('Cliente: Respuesta del servidor:', data);
@@ -71,7 +71,7 @@ const OrderTableBody = ({
       setLoading(true);
       console.log('Cliente: Iniciando finalización del pedido:', orderId);
       
-      const response = await fetch(`/api/pedidos/${orderId}`, {
+  const response = await fetch(`/api/pedidos/${orderId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -89,7 +89,7 @@ const OrderTableBody = ({
         console.log('Cliente: Pedido finalizado exitosamente:', data);
         
         // Recargar los pedidos inmediatamente después de finalizar uno
-        const updatedResponse = await fetch("/api/pedido-platos");
+    const updatedResponse = await fetch("/api/pedido-platos", { cache: "no-store" });
         const updatedData = await updatedResponse.json();
         
         if (updatedResponse.ok && updatedData.success) {
