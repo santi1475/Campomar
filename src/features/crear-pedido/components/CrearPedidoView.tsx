@@ -4,13 +4,13 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { Plus, Search, ChevronDown, ChevronUp, ShoppingCart, Minus, Trash } from "lucide-react"
+import { Plus, Search, ShoppingCart, Minus, Trash } from "lucide-react"
 import type { empleados, mesas, platos } from "@prisma/client"
 import { useEmpleadoStore } from "@/store/empleado"
 import { useRouter } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 interface MesaProps {
   mesas: mesas[]
@@ -30,6 +30,7 @@ export default function MesaLibre({ mesas }: MesaProps) {
   const empleado: empleados = useEmpleadoStore((state: any) => state.empleado)
   const [filterCategory, setFilterCategory] = useState<string>("")
   const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false)
+  const [isMobileModalOpen, setIsMobileModalOpen] = useState(false)
 
   useEffect(() => {
     const fetchPlatos = async () => {
@@ -195,19 +196,19 @@ export default function MesaLibre({ mesas }: MesaProps) {
       setOrderItems([])
       router.push("/empleado")
       alert("Pedido realizado correctamente")
-      
-      return PedidoID // Retornamos el ID del pedido creado
+
+      return PedidoID
     } catch (error) {
       console.error(error)
       alert("Ocurrió un error al realizar el pedido")
-      return null // Retornamos null si hay error
+      return null
     }
   }
 
   return (
     <div className="h-full flex flex-col">
       {/* Mobile Layout */}
-      <div className="block lg:hidden h-full flex flex-col">
+      <div className="block lg:hidden h-full flex-col relative">
         {/* Header */}
         <div className="p-4 text-center">
           <h1 className="text-xl font-bold text-gray-900 mb-4">
@@ -243,7 +244,7 @@ export default function MesaLibre({ mesas }: MesaProps) {
         </div>
 
         {/* Menu Grid */}
-        <div className="flex-1 px-4 mb-4">
+        <div className="flex-1 px-4 mb-20">
           <div className="border-2 border-blue-400 rounded-lg p-4 bg-white h-full">
             <div className="grid grid-cols-2 gap-3 h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               {filteredPlatos.map((item) => (
@@ -264,128 +265,125 @@ export default function MesaLibre({ mesas }: MesaProps) {
           </div>
         </div>
 
-        {/* Order Details - Collapsible */}
-        <div className="bg-white border-t shadow-lg">
-          <Collapsible open={isOrderDetailsOpen} onOpenChange={setIsOrderDetailsOpen}>
-            <CollapsibleTrigger asChild>
-              <div className="bg-slate-700 text-white px-4 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-600 transition-colors">
-                <div className="flex items-center gap-3">
-                  <ShoppingCart className="w-5 h-5" />
-                  <span className="font-semibold text-base">Detalle de pedido</span>
-                  {orderItems.length > 0 && (
+        {orderItems.length > 0 && (
+          <Dialog open={isMobileModalOpen} onOpenChange={setIsMobileModalOpen}>
+            <DialogTrigger asChild>
+              <div className="fixed bottom-6 right-5 z-50">
+                <div className="bg-slate-700 hover:bg-slate-600 text-white rounded-full p-4 shadow-lg cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95">
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="w-6 h-6" />
                     <span className="bg-blue-500 text-white rounded-full px-2 py-1 text-sm font-medium min-w-[24px] text-center">
                       {orderItems.reduce((sum, item) => sum + item.Cantidad, 0)}
                     </span>
-                  )}
+                  </div>
                 </div>
-                {isOrderDetailsOpen ? <ChevronDown className="w-6 h-6" /> : <ChevronUp className="w-6 h-6" />}
               </div>
-            </CollapsibleTrigger>
+            </DialogTrigger>
 
-            <CollapsibleContent>
-              <div className="p-4 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                {orderItems.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No hay productos en el pedido</p>
-                ) : (
-                  <div className="space-y-3">
-                    {orderItems.map((item) => (
-                      <div key={item.PlatoID} className="bg-gray-50 p-3 rounded-lg">
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* Left Column - Item Info */}
-                          <div>
-                            <h4 className="font-medium text-gray-900 text-base leading-tight mb-1">
-                              {item.Descripcion}
-                            </h4>
-                            <p className="text-sm text-gray-600">S/. {Number(item.Precio!).toFixed(2)} c/u</p>
-                          </div>
+            <DialogContent className="max-w-[95vw] max-h-[85vh] p-0">
+              <DialogHeader className="bg-slate-700 text-white px-3 py-3 rounded-b-lg">
+                <DialogTitle className="flex items-center justify-between text-base">
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="w-4 h-4" />
+                    <span className="font-medium">Pedido</span>
+                  </div>
+                </DialogTitle>
+              </DialogHeader>
 
-                          {/* Right Column - Controls and Price */}
-                          <div className="flex flex-col items-end gap-2">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  decreaseQuantity(item)
-                                }}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Minus className="w-4 h-4" />
-                              </Button>
-                              <span className="font-semibold text-gray-900 min-w-[20px] text-center">
-                                {item.Cantidad}
-                              </span>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  increaseQuantity(item)
-                                }}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setOrderItems(orderItems.filter((orderItem) => orderItem.PlatoID !== item.PlatoID))
-                                }}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Trash className="w-4 h-4" />
-                              </Button>
-                            </div>
-                            <span className="font-semibold text-gray-900 text-base">
-                              S/. {(Number(item.Precio ?? 0) * item.Cantidad).toFixed(2)}
+              <div className="flex-1 p-3 max-h-[55vh] overflow-y-auto">
+                <div className="space-y-2">
+                  {orderItems.map((item) => (
+                    <div key={item.PlatoID} className="bg-gray-50 p-2 rounded-md">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-900 text-sm leading-tight truncate">
+                            {item.Descripcion}
+                          </h4>
+                          <p className="text-xs text-gray-600">S/. {Number(item.Precio!).toFixed(2)}</p>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                decreaseQuantity(item)
+                              }}
+                              className="h-6 w-6 p-0 border-gray-300"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </Button>
+                            <span className="font-medium text-gray-900 min-w-[16px] text-center text-sm">
+                              {item.Cantidad}
                             </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                increaseQuantity(item)
+                              }}
+                              className="h-6 w-6 p-0 border-gray-300"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setOrderItems(orderItems.filter((orderItem) => orderItem.PlatoID !== item.PlatoID))
+                              }}
+                              className="h-6 w-6 p-0 ml-1"
+                            >
+                              <Trash className="w-3 h-3" />
+                            </Button>
                           </div>
+                          <span className="font-bold text-gray-900 text-m">
+                            S/. {(Number(item.Precio ?? 0) * item.Cantidad).toFixed(2)}
+                          </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-                {orderItems.length > 0 && (
-                  <div className="border-t pt-3 mt-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={clearAllOrders}
-                      className="w-full text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
-                    >
-                      Limpiar todo el pedido
-                    </Button>
-                  </div>
-                )}
-                {orderItems.length > 0 && (
-                  <>
-                    <div className="border-t pt-4 mt-4">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-lg font-semibold">Total:</span>
-                        <span className="text-xl font-bold">S/. {total.toFixed(2)}</span>
-                      </div>
-                      <div className="w-full">
-                        <BoletaCocinaModal
-                          mode="crear"
-                          mesas={mesas}
-                          handleRealizarPedido={handleRealizarPedido}
-                          orderItems={orderItems.map(item => ({
-                            PlatoID: item.PlatoID,
-                            Descripcion: item.Descripcion || '',
-                            Cantidad: item.Cantidad
-                          }))}
-                        />
-                      </div>
                     </div>
-                  </>
-                )}
+                  ))}
+                </div>
+
+                <div className="border-t pt-2 mt-3 flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearAllOrders}
+                    className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent h-8 text-xs"
+                  >
+                    Limpiar pedido
+                  </Button>
+                </div>
+
+
+                <div className="border-t pt-2 mt-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-base font-semibold">Total:</span>
+                    <span className="text-lg font-bold">S/. {total.toFixed(2)}</span>
+                  </div>
+                  <div className="w-full">
+                    <BoletaCocinaModal
+                      mode="crear"
+                      mesas={mesas}
+                      handleRealizarPedido={handleRealizarPedido}
+                      orderItems={orderItems.map((item) => ({
+                        PlatoID: item.PlatoID,
+                        Descripcion: item.Descripcion || "",
+                        Cantidad: item.Cantidad,
+                      }))}
+                    />
+                  </div>
+                </div>
               </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Desktop Layout */}
@@ -538,11 +536,16 @@ export default function MesaLibre({ mesas }: MesaProps) {
                   <span className="text-lg font-semibold">Total:</span>
                   <span className="text-xl font-bold">S/. {total.toFixed(2)}</span>
                 </div>
-                <BoletaCocinaModal mode="crear" mesas={mesas} handleRealizarPedido={handleRealizarPedido} orderItems={orderItems.map(item => ({
-                  PlatoID: item.PlatoID,
-                  Descripcion: item.Descripcion || '',
-                  Cantidad: item.Cantidad
-                }))} />
+                <BoletaCocinaModal
+                  mode="crear"
+                  mesas={mesas}
+                  handleRealizarPedido={handleRealizarPedido}
+                  orderItems={orderItems.map((item) => ({
+                    PlatoID: item.PlatoID,
+                    Descripcion: item.Descripcion || "",
+                    Cantidad: item.Cantidad,
+                  }))}
+                />
               </div>
             )}
           </div>
