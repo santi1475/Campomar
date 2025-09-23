@@ -39,21 +39,26 @@ const OrderTableBody = ({
     const fetchOrders = async () => {
       try {
         console.log('Cliente: Iniciando fetch de pedidos');
-        const response = await fetch("/api/pedido-platos", { cache: "no-store" });
-        const data = await response.json();
-        
-        console.log('Cliente: Respuesta del servidor:', data);
+        const pedidosResponse = await fetch("/api/pedido-platos", { cache: "no-store" });
+        const pedidosData = await pedidosResponse.json();
+        const mesasResponse = await fetch("/api/mesas", { cache: "no-store" });
+        const mesasData = await mesasResponse.json();
 
-        if (response.ok && data.success) {
-          console.log('Cliente: Pedidos obtenidos correctamente:', {
-            totalPedidos: data.debug?.totalPedidos,
-            pedidosActivos: data.debug?.pedidosActivos,
-            pedidosConDetalles: data.debug?.pedidosConDetalles
+        console.log('Cliente: Respuesta del servidor pedidos:', pedidosData);
+        console.log('Cliente: Respuesta del servidor mesas:', mesasData);
+
+        if (pedidosResponse.ok && pedidosData.success && mesasResponse.ok) {
+          const mesaEstadoMap = new Map();
+          mesasData.forEach((mesa: any) => {
+            mesaEstadoMap.set(mesa.MesaID, mesa.Estado);
           });
-          setOrders(data.data);
+          setOrders(pedidosData.data.map((pedido: any) => ({
+            ...pedido,
+            mesaEstados: pedido.pedido_mesas.map((pm: any) => mesaEstadoMap.get(pm.MesaID))
+          })));
         } else {
-          console.error("Cliente: Error al cargar pedidos:", data.error, data.errorDetails);
-          setError(data.errorDetails || data.error || "Error al cargar los pedidos");
+          console.error("Cliente: Error al cargar pedidos o mesas:", pedidosData.error, pedidosData.errorDetails);
+          setError(pedidosData.errorDetails || pedidosData.error || "Error al cargar los pedidos");
         }
       } catch (error) {
         console.error("Cliente: Error al hacer fetch:", error);
@@ -88,7 +93,6 @@ const OrderTableBody = ({
       if (response.ok) {
         console.log('Cliente: Pedido finalizado exitosamente:', data);
         
-        // Recargar los pedidos inmediatamente después de finalizar uno
     const updatedResponse = await fetch("/api/pedido-platos", { cache: "no-store" });
         const updatedData = await updatedResponse.json();
         
@@ -118,13 +122,17 @@ const OrderTableBody = ({
 
   console.log('Cliente: Pedidos recibidos del backend:', orders);
   const filteredOrders = orders.filter((order) => {
-    const isActive = order.Estado === true;
-    if (!isActive) {
+    if (!order.Estado) {
       console.log(`Cliente: Pedido ${order.PedidoID} filtrado por Estado FALSE`);
+      return false;
     }
-    return isActive;
+    const mesaOcupada = order.mesaEstados?.some((estado: string) => estado === "Ocupada");
+    if (!mesaOcupada) {
+      console.log(`Cliente: Pedido ${order.PedidoID} filtrado por no tener mesas ocupadas (estado real)`);
+    }
+    return mesaOcupada;
   });
-  console.log('Cliente: Pedidos después de filtrar por Estado:', filteredOrders);
+  console.log('Cliente: Pedidos después de filtrar por Estado y mesas ocupadas (estado real):', filteredOrders);
 
   if (loading) {
     return (
