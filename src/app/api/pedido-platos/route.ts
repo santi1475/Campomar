@@ -63,7 +63,7 @@ export async function GET() {
         pedidosActivos: pedidosActivos.length,
         pedidosConDetalles: pedidos.length
       }
-    });
+    }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error("API: Error detallado al obtener los pedidos:", error);
     return NextResponse.json(
