@@ -116,17 +116,14 @@ const OrderTableBody = ({
     }
   };
 
-  // Mostrar todos los pedidos activos, sin filtrar por searchTerm
   console.log('Cliente: Pedidos recibidos del backend:', orders);
-  const filteredOrders = orders.filter(
-    (order) => {
-      const isActive = order.Estado;
-      if (!isActive) {
-        console.log(`Cliente: Pedido ${order.PedidoID} filtrado por Estado FALSE`);
-      }
-      return isActive;
+  const filteredOrders = orders.filter((order) => {
+    const isActive = order.Estado === true;
+    if (!isActive) {
+      console.log(`Cliente: Pedido ${order.PedidoID} filtrado por Estado FALSE`);
     }
-  );
+    return isActive;
+  });
   console.log('Cliente: Pedidos después de filtrar por Estado:', filteredOrders);
 
   if (loading) {
