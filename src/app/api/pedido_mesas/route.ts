@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
       descripcionPlato: detalle.platos?.Descripcion || "Plato no encontrado",
       Cantidad: detalle.Cantidad,
       PrecioUnitario: Number(detalle.platos?.Precio) || 0,
+      Impreso: detalle.Impreso,
     }));
 
     const total = detalles.reduce(

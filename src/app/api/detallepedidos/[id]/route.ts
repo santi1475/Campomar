@@ -32,6 +32,7 @@ const putSchema = yup.object({
   PlatoID: yup.number().optional(),
   Cantidad: yup.number().optional(),
   operacion: yup.string().oneOf(["incrementar", "decrementar"]).optional(),
+  cantidad: yup.number().optional(), // Para especificar cuánto incrementar
 });
 
 export async function PUT(request: Request, { params }: Segments) {
@@ -51,7 +52,7 @@ export async function PUT(request: Request, { params }: Segments) {
   }
 
   try {
-    const { PlatoID, Cantidad, operacion } = await putSchema.validate(
+    const { PlatoID, Cantidad, operacion, cantidad } = await putSchema.validate(
       await request.json()
     );
 
@@ -60,7 +61,9 @@ export async function PUT(request: Request, { params }: Segments) {
     if (Cantidad !== undefined) {
       nuevaCantidad = Cantidad;
     } else if (operacion === "incrementar") {
-      nuevaCantidad += 1;
+      // Si se especifica una cantidad, incrementar por esa cantidad, sino por 1
+      const incremento = cantidad || 1;
+      nuevaCantidad += incremento;
     } else if (operacion === "decrementar") {
       nuevaCantidad = Math.max(nuevaCantidad - 1, 1);
     }
@@ -73,6 +76,8 @@ export async function PUT(request: Request, { params }: Segments) {
         data: {
           PlatoID,
           Cantidad: nuevaCantidad,
+          // Marcar como no impreso cuando se modifica
+          Impreso: false,
         },
       });
 

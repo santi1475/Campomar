@@ -8,20 +8,24 @@ import { Textarea } from "@/components/ui/textarea"
 import { Printer, ShoppingCart, Eye, EyeOff } from "lucide-react"
 import BoletaCocina from "@/features/impresion-cocina/components/BoletaCocina"
 
+interface OrderItem {
+  PlatoID: number
+  Descripcion: string
+  Cantidad: number
+  DetalleID?: number // Solo presente en modo reimprimir
+}
+
 interface BoletaCocinaModalProps {
   mode: "crear" | "reimprimir"
   pedidoId?: number
   mesas: {
     NumeroMesa: number
   }[]
-  orderItems: {
-    PlatoID: number
-    Descripcion: string
-    Cantidad: number
-  }[]
+  orderItems: OrderItem[]
   handleRealizarPedido?: () => Promise<number | null>
   triggerButton?: React.ReactNode
   initialComentario?: string
+  onPrintSuccess?: () => void
 }
 
 export default function BoletaCocinaModal({
@@ -32,6 +36,7 @@ export default function BoletaCocinaModal({
   handleRealizarPedido,
   triggerButton,
   initialComentario = "",
+  onPrintSuccess,
 }: BoletaCocinaModalProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [comentario, setComentario] = useState(initialComentario || "")
@@ -107,19 +112,37 @@ export default function BoletaCocinaModal({
       console.log(`✅ Comanda ${comanda.ComandaID} creada exitosamente para el pedido ${pedidoId}`)
 
       // Actualizamos el estado de los platos a impreso
+
+      const detalleIds = orderItems
+        .map(item => item.DetalleID)
+        .filter((id): id is number => typeof id === "number")
+
+      if (!detalleIds.length) {
+        alert("No hay platos nuevos para marcar como impresos. Verifica que los items tengan DetalleID válido.");
+        setIsSubmitting(false);
+        return;
+      }
+
       const actualizarResponse = await fetch(`/api/pedido-platos/${pedidoId}/marcar-impresos`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          platosIds: orderItems.map(item => item.PlatoID)
+          detalleIds
         })
       })
 
       if (!actualizarResponse.ok) {
-        throw new Error("Error al actualizar el estado de los platos")
+        const error = await actualizarResponse.json();
+        console.error("Error al marcar como impresos:", error);
+        throw new Error(error.message || "Error al actualizar el estado de los platos")
       }
 
       setIsOpen(false)
+      
+      // Llamar al callback de éxito si está definido
+      if (onPrintSuccess) {
+        onPrintSuccess()
+      }
     } catch (error) {
       console.error("❌ Error en el proceso:", error)
       alert(`Error al reimprimir: ${error instanceof Error ? error.message : "Ocurrió un error"}`)

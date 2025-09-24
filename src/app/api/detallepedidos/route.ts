@@ -38,6 +38,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
         PedidoID,
         PlatoID,
         Cantidad,
+        Impreso: false, // Asegurar que los nuevos platos no estén marcados como impresos
       },
     });
 

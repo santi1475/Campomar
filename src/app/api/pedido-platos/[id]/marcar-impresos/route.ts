@@ -7,21 +7,21 @@ export async function PUT(
 ) {
   try {
     const pedidoId = parseInt(params.id);
-    const { platosIds } = await request.json();
+    const { detalleIds } = await request.json();
 
-    if (!pedidoId || !platosIds || !Array.isArray(platosIds)) {
+    if (!pedidoId || !detalleIds || !Array.isArray(detalleIds) || detalleIds.length === 0) {
       return NextResponse.json(
-        { message: "ID de pedido o platos no válidos" },
+        { message: "ID de pedido o detalles no válidos" },
         { status: 400 }
       );
     }
 
-    // Actualizar todos los detalles del pedido especificados como impresos
-    await prisma.detallepedidos.updateMany({
+    // Actualizar solo los detalles especificados como impresos
+    const updateResult = await prisma.detallepedidos.updateMany({
       where: {
         PedidoID: pedidoId,
-        PlatoID: {
-          in: platosIds,
+        DetalleID: {
+          in: detalleIds,
         },
       },
       data: {
@@ -29,7 +29,18 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json({ message: "Platos marcados como impresos" });
+    // Log para depuración: mostrar los detalles actualizados
+    const detallesActualizados = await prisma.detallepedidos.findMany({
+      where: {
+        PedidoID: pedidoId,
+        DetalleID: {
+          in: detalleIds,
+        },
+      },
+    });
+    console.log("Detalles marcados como impresos:", detallesActualizados);
+
+    return NextResponse.json({ message: "Detalles marcados como impresos", detallesActualizados, updateResult });
   } catch (error) {
     console.error("Error al marcar platos como impresos:", error);
     return NextResponse.json(

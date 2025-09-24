@@ -83,20 +83,43 @@ export const MesaOcupada = () => {
   const addPlatoToPedido = async (platoId: number, cantidad: number) => {
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/detallepedidos`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          PedidoID: pedido.PedidoID,
-          PlatoID: platoId,
-          Cantidad: cantidad,
-        }),
-      })
-      if (!response.ok) {
-        throw new Error("Error al agregar el plato al pedido")
+      // Primero verificar si el plato ya existe en el pedido
+      const platoExistente = pedido?.detalles.find((detalle: any) => detalle.PlatoID === platoId)
+
+      if (platoExistente) {
+        // Si existe, incrementar la cantidad
+        const response = await fetch(`/api/detallepedidos/${platoExistente.DetalleID}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            operacion: "incrementar",
+            cantidad: cantidad, // Incrementar por la cantidad especificada
+          }),
+        })
+        if (!response.ok) {
+          throw new Error("Error al actualizar el plato en el pedido")
+        }
+      } else {
+        // Si no existe, crear nuevo detalle
+        const response = await fetch(`/api/detallepedidos`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            PedidoID: pedido.PedidoID,
+            PlatoID: platoId,
+            Cantidad: cantidad,
+          }),
+        })
+        if (!response.ok) {
+          throw new Error("Error al agregar el plato al pedido")
+        }
       }
+
+      // Actualizar el pedido para obtener los cambios
       await fetchPedido()
     } catch (error) {
       console.error(error)
@@ -126,9 +149,9 @@ export const MesaOcupada = () => {
         const detallesActualizados = prevPedido.detalles.map((detalle: any) =>
           detalle.DetalleID === detalleId
             ? {
-                ...detalle,
-                Cantidad: detalle.Cantidad + 1,
-              }
+              ...detalle,
+              Cantidad: detalle.Cantidad + 1,
+            }
             : detalle,
         )
         return {
@@ -360,28 +383,54 @@ export const MesaOcupada = () => {
                     </AlertDialog>
 
                     {pedido && (
-                      <BoletaCocinaModal
-                        mode="reimprimir"
-                        pedidoId={pedido.PedidoID}
-                        mesas={selectedTables}
-                        orderItems={
-                          pedido.detalles
-                            .filter((detalle: any) => !detalle.Impreso) // Solo platos no impresos
+                      <div className="flex flex-col gap-2">
+                        <BoletaCocinaModal
+                          mode="reimprimir"
+                          pedidoId={pedido.PedidoID}
+                          mesas={selectedTables}
+                          orderItems={pedido.detalles.map((detalle: any) => ({
+                            DetalleID: detalle.DetalleID,
+                            PlatoID: detalle.PlatoID,
+                            Descripcion: detalle.descripcionPlato,
+                            Cantidad: detalle.Cantidad,
+                          }))}
+                          onPrintSuccess={() => {
+                            fetchPedido();
+                          }}
+                          triggerButton={
+                            <Button
+                              className="w-full text-sm sm:text-base transition-all duration-300 ease-in-out transform hover:scale-105 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg"
+                              disabled={!pedido}
+                            >
+                              <Printer className="w-4 h-4 mr-2" /> Reimprimir Todo el Pedido
+                            </Button>
+                          }
+                        />
+                        <BoletaCocinaModal
+                          mode="reimprimir"
+                          pedidoId={pedido.PedidoID}
+                          mesas={selectedTables}
+                          orderItems={pedido.detalles
+                            .filter((detalle: any) => !detalle.Impreso)
                             .map((detalle: any) => ({
+                              DetalleID: detalle.DetalleID,
                               PlatoID: detalle.PlatoID,
                               Descripcion: detalle.descripcionPlato,
                               Cantidad: detalle.Cantidad,
-                            })) || []
-                        }
-                        triggerButton={
-                          <Button
-                            className="w-full text-sm sm:text-base transition-all duration-300 ease-in-out transform hover:scale-105 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg"
-                            disabled={!pedido || !pedido.detalles.some((detalle: any) => !detalle.Impreso)} // Deshabilitar si no hay platos nuevos
-                          >
-                            <Printer className="w-4 h-4 mr-2" /> Imprimir Nuevos Platos
-                          </Button>
-                        }
-                      />
+                            }))}
+                          onPrintSuccess={() => {
+                            fetchPedido();
+                          }}
+                          triggerButton={
+                            <Button
+                              className="w-full text-sm sm:text-base transition-all duration-300 ease-in-out transform hover:scale-105 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-md hover:shadow-lg"
+                              disabled={!pedido || !pedido.detalles.some((detalle: any) => !detalle.Impreso)}
+                            >
+                              <Printer className="w-4 h-4 mr-2" /> Imprimir Solo Platos Nuevos
+                            </Button>
+                          }
+                        />
+                      </div>
                     )}
 
                     <Button
@@ -604,11 +653,11 @@ export const MesaOcupada = () => {
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <div className="flex flex-col items-center justify-center py-4">
-                                    <div 
+                                    <div
                                       className="relative cursor-pointer transform transition-transform hover:scale-105 group"
                                       onClick={() => setIsImageModalOpen(true)}
                                     >
-                                      <Image 
+                                      <Image
                                         src={YapeQR}
                                         alt="QR Yape"
                                         width={256}

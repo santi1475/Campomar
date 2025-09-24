@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, Search, Trash, X } from "lucide-react"
@@ -27,6 +28,8 @@ interface Props {
       descripcionPlato: string
       Cantidad: number
       PrecioUnitario: number
+      DetalleID: number
+      Impreso?: boolean
     }>
     mesas: Array<{
       NumeroMesa: number
@@ -49,6 +52,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showMobileCart, setShowMobileCart] = useState(false)
+  const [comentario, setComentario] = useState("")
 
   useEffect(() => {
     const fetchPlatos = async () => {
@@ -59,11 +63,9 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
             "Content-Type": "application/json",
           },
         })
-
         if (!response.ok) {
           throw new Error("Error al obtener los platos")
         }
-
         const data = await response.json()
         setPlatos(data)
       } catch (error) {
@@ -72,7 +74,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
         setIsLoading(false)
       }
     }
-
     fetchPlatos()
   }, [])
 
@@ -103,7 +104,12 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
         ),
       )
     } else {
-      setOrderItems([...orderItems, { ...plato, Cantidad: 1 }])
+      // Asegurar que la descripción esté correctamente establecida
+      setOrderItems([...orderItems, { 
+        ...plato, 
+        Cantidad: 1,
+        Descripcion: plato.Descripcion || "Plato sin descripción"
+      }])
     }
   }
 
@@ -119,18 +125,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
       setOrderItems(orderItems.filter((orderItem) => orderItem.PlatoID !== plato.PlatoID))
     }
   }
-
-  useEffect(() => {
-    const filtered = platos.filter((plato) => plato.Descripcion!.toLowerCase().includes(searchTerm.toLowerCase()))
-
-    const categoryFiltered = filtered.filter((plato) => {
-      if (filterCategory === "todos" || filterCategory === "") {
-        return true
-      }
-      return plato.CategoriaID === Number.parseInt(filterCategory)
-    })
-    setFilteredPlatos(categoryFiltered)
-  }, [searchTerm, filterCategory, platos])
 
   if (isLoading) {
     return (
@@ -151,7 +145,11 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
           Agregar plato
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-6xl w-[95vw] h-[85vh] p-0 gap-0 overflow-hidden">
+      <DialogContent 
+        className="max-w-6xl w-[95vw] h-[85vh] p-0 gap-0 overflow-hidden"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <div className="flex flex-col h-full min-h-0 overflow-hidden">
           <DialogHeader className="flex-shrink-0 p-4 sm:p-6 border-b bg-white">
             <div className="flex items-center justify-between">
@@ -308,48 +306,57 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                         <span className="text-xl font-bold text-blue-600">S/. {totalAmount}</span>
                       </div>
 
-                      {pedido && (
-                        <BoletaCocinaModal
-                          mode="reimprimir"
-                          pedidoId={pedido.PedidoID}
-                          mesas={pedido.mesas || []}
-                          orderItems={orderItems.map((item) => ({
-                            PlatoID: item.PlatoID,
-                            Descripcion: item.Descripcion || "",
-                            Cantidad: item.Cantidad,
-                          }))}
-                          handleRealizarPedido={async () => {
-                            if (!pedido) return null
+                      {/* Sección de comentario */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Comentario para cocina (opcional)
+                        </label>
+                        <Textarea
+                          value={comentario}
+                          onChange={(e) => setComentario(e.target.value)}
+                          placeholder="Agregar instrucciones especiales..."
+                          className="w-full"
+                          rows={2}
+                        />
+                      </div>
+
+                      {orderItems.length > 0 && pedido && (
+                        <Button
+                          disabled={isLoading || orderItems.length === 0 || isSubmitting}
+                          className="w-full h-12 text-base font-semibold"
+                          onClick={async () => {
+                            if (!pedido) return;
                             try {
-                              setIsSubmitting(true)
-                              await Promise.all(orderItems.map((item) => addPlatoToPedido(item.PlatoID, item.Cantidad)))
-                              await onPedidoUpdated()
-                              setOrderItems([])
-                              await new Promise((resolve) => setTimeout(resolve, 500))
-                              await new Promise((resolve) => setTimeout(resolve, 500))
-                              setShowMobileCart(false)
-                              setDialogOpen(false)
-                              return pedido.PedidoID
+                              setIsSubmitting(true);
+                              // Guardar los platos nuevos en la base de datos
+                              for (const item of orderItems) {
+                                await addPlatoToPedido(item.PlatoID, item.Cantidad);
+                              }
+                              // Crear la comanda para impresión
+                              const comandaResponse = await fetch("/api/comanda-cocina", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  pedidoID: pedido.PedidoID,
+                                  comentario: "",
+                                }),
+                              });
+                              if (comandaResponse.ok) {
+                                await onPedidoUpdated();
+                                setOrderItems([]);
+                                setShowMobileCart(false);
+                                setDialogOpen(false);
+                              }
                             } catch (error) {
-                              console.error("Error al agregar los platos:", error)
-                              alert(
-                                "Error al agregar los platos: " +
-                                  (error instanceof Error ? error.message : "Error desconocido"),
-                              )
-                              return null
+                              console.error("Error:", error);
+                              alert("Error al procesar el pedido");
                             } finally {
-                              setIsSubmitting(false)
+                              setIsSubmitting(false);
                             }
                           }}
-                          triggerButton={
-                            <Button
-                              disabled={isLoading || orderItems.length === 0 || isSubmitting}
-                              className="w-full h-12 text-base font-semibold"
-                            >
-                              {isSubmitting ? "Procesando..." : "Agregar platos y generar comanda"}
-                            </Button>
-                          }
-                        />
+                        >
+                          {isSubmitting ? "Procesando..." : "Agregar platos y generar comanda"}
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -428,47 +435,79 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                       <span className="text-xl font-bold text-blue-600">S/. {totalAmount}</span>
                     </div>
 
+                    {/* Sección de comentario */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Comentario para cocina (opcional)
+                      </label>
+                      <Textarea
+                        value={comentario}
+                        onChange={(e) => setComentario(e.target.value)}
+                        placeholder="Agregar instrucciones especiales..."
+                        className="w-full"
+                        rows={2}
+                      />
+                    </div>
+
                     {pedido && (
-                      <BoletaCocinaModal
-                        mode="reimprimir"
-                        pedidoId={pedido.PedidoID}
-                        mesas={pedido.mesas || []}
-                        orderItems={orderItems.map((item) => ({
-                          PlatoID: item.PlatoID,
-                          Descripcion: item.Descripcion || "",
-                          Cantidad: item.Cantidad,
-                        }))}
-                        handleRealizarPedido={async () => {
-                          if (!pedido) return null
+                      <Button
+                        disabled={isLoading || orderItems.length === 0 || isSubmitting}
+                        className="w-full h-12 text-base font-semibold"
+                        onClick={async () => {
+                          if (!pedido) return;
                           try {
-                            setIsSubmitting(true)
-                            await Promise.all(orderItems.map((item) => addPlatoToPedido(item.PlatoID, item.Cantidad)))
-                            await onPedidoUpdated()
-                            
-                            setOrderItems([])
-                            setDialogOpen(false)
-                            
-                            return pedido.PedidoID
+                            setIsSubmitting(true);
+                            // Guardar los platos nuevos en la base de datos
+                            for (const item of orderItems) {
+                              await addPlatoToPedido(item.PlatoID, item.Cantidad);
+                            }
+                            // Crear la comanda para impresión SOLO de los platos nuevos
+                            const detallesParaComanda = orderItems.map(item => ({
+                              PlatoID: item.PlatoID,
+                              Cantidad: item.Cantidad,
+                              Descripcion: item.Descripcion || "Plato sin descripción"
+                            }));
+
+                            console.log("🖨️ Creando comanda para nuevos platos:", detallesParaComanda);
+
+                            const comandaResponse = await fetch("/api/comanda-cocina", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                pedidoID: pedido.PedidoID,
+                                comentario: comentario,
+                                detalles: detallesParaComanda
+                              }),
+                            });
+                            if (comandaResponse.ok) {
+                              const comandaData = await comandaResponse.json();
+                              console.log("✅ Comanda creada exitosamente:", {
+                                ComandaID: comandaData.ComandaID,
+                                Comentario: comandaData.Comentario
+                              });
+                              
+                              await onPedidoUpdated();
+                              setOrderItems([]);
+                              setComentario("");
+                              setDialogOpen(false);
+                              
+                              // Mostrar mensaje de éxito
+                              alert(`¡Platos agregados! Comanda #${comandaData.ComandaID} enviada a cocina para imprimir solo los nuevos platos.`);
+                            } else {
+                              const errorData = await comandaResponse.json();
+                              console.error("❌ Error al crear comanda:", errorData);
+                              alert(`Error al crear la comanda: ${errorData.message}`);
+                            }
                           } catch (error) {
-                            console.error("Error al agregar los platos:", error)
-                            alert(
-                              "Error al agregar los platos: " +
-                                (error instanceof Error ? error.message : "Error desconocido"),
-                            )
-                            return null
+                            console.error("Error:", error);
+                            alert("Error al procesar el pedido");
                           } finally {
-                            setIsSubmitting(false)
+                            setIsSubmitting(false);
                           }
                         }}
-                        triggerButton={
-                          <Button
-                            disabled={isLoading || orderItems.length === 0 || isSubmitting}
-                            className="w-full h-12 text-base font-semibold"
-                          >
-                            {isSubmitting ? "Procesando..." : "Agregar platos y generar comanda"}
-                          </Button>
-                        }
-                      />
+                      >
+                        {isSubmitting ? "Procesando..." : "Agregar platos y generar comanda"}
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -477,6 +516,8 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
           </div>
         </div>
       </DialogContent>
+
+
     </Dialog>
   )
 }
