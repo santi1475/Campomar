@@ -37,7 +37,7 @@ const EmpleadoPage = () => {
 
   return (
     <div className="container mx-auto">
-      <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center items-center w-full">
+      <div className="flex flex-col sm:flex-row gap-1 md:gap-2 justify-center items-center w-full">
         <CardEmpleado
           texto="Ver Sala"
           icono={<Armchair size={60} />}
@@ -47,11 +47,6 @@ const EmpleadoPage = () => {
           texto="Ver Carta"
           icono={<BookOpen size={60} />}
           direccion="/empleado/carta"
-        />
-        <CardEmpleado
-          texto="Pedidos"
-          icono={<HandPlatter size={60} />}
-          direccion="/empleado/pedidos"
         />
       </div>
     </div>

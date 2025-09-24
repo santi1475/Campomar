@@ -15,7 +15,7 @@ export const CardEmpleado = ({
 }: CardEmpleadoProps) => {
   return (
     <motion.div
-      whileHover={{ scale: 1.05, y: -5 }}
+      whileHover={{ scale: 1.05, y: -8 }}
       transition={{ type: "spring", stiffness: 300 }}
       className="w-full max-w-sm mx-auto"
     >
