@@ -78,10 +78,16 @@ export default function BoletaCocinaModal({
   }
 
   const handleReprint = async () => {
-    if (mode !== "reimprimir" || !pedidoId) return
+    if (mode !== "reimprimir" || !pedidoId || !handleRealizarPedido) return
 
     setIsSubmitting(true)
     try {
+      const updatedPedidoId = await handleRealizarPedido()
+      
+      if (!updatedPedidoId) {
+        throw new Error("No se pudo actualizar el pedido")
+      }
+
       console.log(`Creando comanda para reimpresión del pedido ${pedidoId}...`)
 
       const comandaResponse = await fetch("/api/comanda-cocina", {

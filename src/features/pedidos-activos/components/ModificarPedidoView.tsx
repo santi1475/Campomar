@@ -1,11 +1,14 @@
 "use client"
 
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useEmpleadoStore } from "@/store/empleado"
 import type { empleados, mesas } from "@prisma/client"
-import { X, PlusIcon, MinusIcon, Trash2, Printer, Check, ChevronDown, ChevronUp } from "lucide-react"
+import { X, PlusIcon, MinusIcon, Trash2, Printer, Check, ChevronDown, ChevronUp, Maximize2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Image from "next/image"
+import YapeQR from "@/assets/OIP.jpg"
 import { useCallback, useEffect, useState } from "react"
 import { MesaOcupadaAgregar } from "./ModalAgregarPlato"
 import {
@@ -223,11 +226,11 @@ export const MesaOcupada = () => {
     }
   }
 
-  const handlePagarPedido = async () => {
-    if (!pedido || !tipoPago) {
-      alert("Selecciona un tipo de pago")
-      return
-    }
+  const [isYapeDialogOpen, setIsYapeDialogOpen] = useState(false)
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+
+  const procesarPago = async () => {
     setIsLoading(true)
     try {
       const response = await fetch(`/api/pedidos/${pedido.PedidoID}`, {
@@ -251,7 +254,22 @@ export const MesaOcupada = () => {
       setError("Error al pagar el pedido. Inténtalo de nuevo más tarde.")
     } finally {
       setIsLoading(false)
+      setIsConfirmDialogOpen(false)
     }
+  }
+
+  const handlePagarPedido = () => {
+    if (!pedido || !tipoPago) {
+      alert("Selecciona un tipo de pago")
+      return
+    }
+
+    if (tipoPago === 2) {
+      setIsYapeDialogOpen(true)
+      return
+    }
+
+    setIsConfirmDialogOpen(true)
   }
 
   const buttonColor = (() => {
@@ -572,6 +590,97 @@ export const MesaOcupada = () => {
                                   <SelectItem value="3">POS</SelectItem>
                                 </SelectContent>
                               </Select>
+
+                              {/* Diálogo para Yape */}
+                              {/* Diálogo para Yape */}
+                              <AlertDialog open={isYapeDialogOpen} onOpenChange={setIsYapeDialogOpen}>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Pago con Yape</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Escanea el código QR para realizar el pago
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <div className="flex flex-col items-center justify-center py-4">
+                                    <div 
+                                      className="relative cursor-pointer transform transition-transform hover:scale-105 group"
+                                      onClick={() => setIsImageModalOpen(true)}
+                                    >
+                                      <Image 
+                                        src={YapeQR}
+                                        alt="QR Yape"
+                                        width={256}
+                                        height={256}
+                                        className="object-cover rounded-lg shadow-lg"
+                                        priority
+                                      />
+                                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                        <Maximize2 className="w-8 h-8 text-white" />
+                                      </div>
+                                    </div>
+                                    <p className="mt-4 text-center text-sm text-gray-500">
+                                      Monto a pagar: S/. {pedido?.total.toFixed(2)}
+                                    </p>
+                                  </div>
+
+                                  {/* Modal para imagen ampliada */}
+                                  <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+                                    <DialogContent className="max-w-3xl w-[90vw] h-[90vh] p-0">
+                                      <div className="relative w-full h-full flex items-center justify-center bg-black/90">
+                                        <Image
+                                          src={YapeQR}
+                                          alt="QR Yape"
+                                          width={512}
+                                          height={512}
+                                          className="object-contain max-h-[90vh] w-auto"
+                                          priority
+                                        />
+                                        <Button
+                                          variant="ghost"
+                                          className="absolute top-2 right-2 text-white hover:bg-white/20"
+                                          onClick={() => setIsImageModalOpen(false)}
+                                        >
+                                          <X className="h-6 w-6" />
+                                        </Button>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => {
+                                        setIsYapeDialogOpen(false)
+                                        setIsConfirmDialogOpen(true)
+                                      }}
+                                    >
+                                      Confirmar Pago
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+
+                              {/* Diálogo de confirmación final */}
+                              <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirmar Pago</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      ¿Estás seguro de que deseas procesar el pago por {tipoPago === 1 ? 'Efectivo' : tipoPago === 2 ? 'Yape' : 'POS'}?
+                                      <br />
+                                      Monto total: S/. {pedido?.total.toFixed(2)}
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={procesarPago}
+                                      disabled={isLoading}
+                                    >
+                                      {isLoading ? "Procesando..." : "Confirmar"}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
 
                               <Button
                                 onClick={handlePagarPedido}

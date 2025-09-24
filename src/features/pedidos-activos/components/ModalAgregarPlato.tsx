@@ -77,23 +77,21 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
   }, [])
 
   useEffect(() => {
-    const filtered = platos.filter((plato) => plato.Descripcion!.toLowerCase().includes(searchTerm.toLowerCase()))
-
-    const categoryFiltered = filtered.filter((plato) => {
+    // Filtrado por texto y categoría
+    let filtered = platos.filter((plato) => plato.Descripcion!.toLowerCase().includes(searchTerm.toLowerCase()))
+    filtered = filtered.filter((plato) => {
       if (filterCategory === "todos" || filterCategory === "") {
         return true
       }
       return plato.CategoriaID === Number.parseInt(filterCategory)
     })
-
-    if (!pedido) return
-    console.log(pedido.detalles)
-
-    const uniqueFilteredPlatos = categoryFiltered.filter(
-      (plato) => !pedido.detalles.some((orderItem: any) => orderItem.PlatoID === plato.PlatoID),
-    )
-
-    setFilteredPlatos(uniqueFilteredPlatos)
+    // Excluir platos ya agregados en el pedido actual
+    if (pedido && pedido.detalles) {
+      filtered = filtered.filter(
+        (plato) => !pedido.detalles.some((orderItem: any) => orderItem.PlatoID === plato.PlatoID)
+      )
+    }
+    setFilteredPlatos(filtered)
   }, [searchTerm, filterCategory, platos, pedido])
 
   const addToOrder = (plato: PedidoItem) => {
@@ -446,10 +444,10 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                             setIsSubmitting(true)
                             await Promise.all(orderItems.map((item) => addPlatoToPedido(item.PlatoID, item.Cantidad)))
                             await onPedidoUpdated()
+                            
                             setOrderItems([])
-                            await new Promise((resolve) => setTimeout(resolve, 500))
-                            await new Promise((resolve) => setTimeout(resolve, 500))
                             setDialogOpen(false)
+                            
                             return pedido.PedidoID
                           } catch (error) {
                             console.error("Error al agregar los platos:", error)
