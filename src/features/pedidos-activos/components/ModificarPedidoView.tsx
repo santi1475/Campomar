@@ -365,18 +365,20 @@ export const MesaOcupada = () => {
                         pedidoId={pedido.PedidoID}
                         mesas={selectedTables}
                         orderItems={
-                          pedido.detalles.map((detalle: any) => ({
-                            PlatoID: detalle.PlatoID,
-                            Descripcion: detalle.descripcionPlato,
-                            Cantidad: detalle.Cantidad,
-                          })) || []
+                          pedido.detalles
+                            .filter((detalle: any) => !detalle.Impreso) // Solo platos no impresos
+                            .map((detalle: any) => ({
+                              PlatoID: detalle.PlatoID,
+                              Descripcion: detalle.descripcionPlato,
+                              Cantidad: detalle.Cantidad,
+                            })) || []
                         }
                         triggerButton={
                           <Button
                             className="w-full text-sm sm:text-base transition-all duration-300 ease-in-out transform hover:scale-105 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg"
-                            disabled={!pedido || pedido.detalles.length === 0}
+                            disabled={!pedido || !pedido.detalles.some((detalle: any) => !detalle.Impreso)} // Deshabilitar si no hay platos nuevos
                           >
-                            <Printer className="w-4 h-4 mr-2" /> Reimprimir Comanda
+                            <Printer className="w-4 h-4 mr-2" /> Imprimir Nuevos Platos
                           </Button>
                         }
                       />

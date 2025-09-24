@@ -75,6 +75,7 @@ model detallepedidos {
   PlatoID   Int
   Cantidad  Int
   Activo    Boolean? @default(true)
+  Impreso   Boolean  @default(false)
   pedidos   pedidos  @relation(fields: [PedidoID], references: [PedidoID], onDelete: NoAction, onUpdate: NoAction)
   platos    platos   @relation(fields: [PlatoID], references: [PlatoID], onDelete: NoAction, onUpdate: NoAction)
 }

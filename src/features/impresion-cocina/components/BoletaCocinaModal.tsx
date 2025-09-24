@@ -78,17 +78,12 @@ export default function BoletaCocinaModal({
   }
 
   const handleReprint = async () => {
-    if (mode !== "reimprimir" || !pedidoId || !handleRealizarPedido) return
+    if (mode !== "reimprimir" || !pedidoId) return
 
     setIsSubmitting(true)
     try {
-      const updatedPedidoId = await handleRealizarPedido()
-      
-      if (!updatedPedidoId) {
-        throw new Error("No se pudo actualizar el pedido")
-      }
-
-      console.log(`Creando comanda para reimpresión del pedido ${pedidoId}...`)
+      // Primero enviamos la comanda para los platos nuevos
+      console.log(`Creando comanda para los nuevos platos del pedido ${pedidoId}...`)
 
       const comandaResponse = await fetch("/api/comanda-cocina", {
         method: "POST",
@@ -96,6 +91,10 @@ export default function BoletaCocinaModal({
         body: JSON.stringify({
           pedidoID: pedidoId,
           comentario,
+          detalles: orderItems.map(item => ({
+            PlatoID: item.PlatoID,
+            Cantidad: item.Cantidad
+          }))
         }),
       })
 
@@ -106,6 +105,19 @@ export default function BoletaCocinaModal({
 
       const comanda = await comandaResponse.json()
       console.log(`✅ Comanda ${comanda.ComandaID} creada exitosamente para el pedido ${pedidoId}`)
+
+      // Actualizamos el estado de los platos a impreso
+      const actualizarResponse = await fetch(`/api/pedido-platos/${pedidoId}/marcar-impresos`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platosIds: orderItems.map(item => item.PlatoID)
+        })
+      })
+
+      if (!actualizarResponse.ok) {
+        throw new Error("Error al actualizar el estado de los platos")
+      }
 
       setIsOpen(false)
     } catch (error) {

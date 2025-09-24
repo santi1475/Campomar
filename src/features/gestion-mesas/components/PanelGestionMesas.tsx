@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -31,44 +31,26 @@ export const GestionMesas = () => {
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; mesaId: number | null }>({ open: false, mesaId: null });
   const [errorMsg, setErrorMsg] = useState<string>("");
 
-  useEffect(() => {
-    const fetchTables = async () => {
-      try {
-        const response = await fetch("/api/mesas", { method: "GET" });
-
-        if (!response.ok) throw new Error("Error al obtener las mesas");
-
-        const mesas = await response.json();
-        setTables(mesas);
-
-        // Fetch active pedidos for each table
-        fetchActivePedidosForTables(mesas);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    fetchTables();
-  }, []);
-
-  // Fetch active pedidos for all tables
-  const fetchActivePedidosForTables = async (mesas: mesas[]) => {
+  const fetchActivePedidosForTables = useCallback(async (mesas: mesas[]) => {
     try {
       const pedidosMap: Record<number, PedidoActivo> = {};
 
-      // For each table with status "Ocupada", fetch its active pedido
       const promises = mesas
         .filter(mesa => mesa.Estado === "Ocupada")
         .map(async (mesa) => {
-          const pedidoResponse = await fetch(`/api/pedidos/activo/mesa/${mesa.MesaID}`);
-          if (pedidoResponse.ok) {
-            const pedido = await pedidoResponse.json();
-            if (pedido && pedido.PedidoID) {
-              pedidosMap[mesa.MesaID] = {
-                PedidoID: pedido.PedidoID,
-                tipoPago: pedido.tipoPago || 1 // Default to 1 if tipoPago is not provided
-              };
+          try {
+            const pedidoResponse = await fetch(`/api/pedido_mesas?mesas=${mesa.MesaID}`);
+            if (pedidoResponse.ok) {
+              const pedido = await pedidoResponse.json();
+              if (pedido && pedido.PedidoID) {
+                pedidosMap[mesa.MesaID] = {
+                  PedidoID: pedido.PedidoID,
+                  tipoPago: pedido.TipoPago || 1
+                };
+              }
             }
+          } catch (error) {
+            console.error(`Error fetching pedido for mesa ${mesa.MesaID}:`, error);
           }
         });
 
@@ -77,7 +59,30 @@ export const GestionMesas = () => {
     } catch (error) {
       console.error("Error fetching active pedidos:", error);
     }
-  };
+  }, []);
+
+  const fetchTables = useCallback(async () => {
+    try {
+      const response = await fetch("/api/mesas", { method: "GET" });
+
+      if (!response.ok) throw new Error("Error al obtener las mesas");
+
+      const mesas = await response.json();
+      setTables(mesas);
+
+      fetchActivePedidosForTables(mesas);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [fetchActivePedidosForTables]);
+
+  useEffect(() => {
+    fetchTables();
+
+    const interval = setInterval(fetchTables, 5000);
+
+    return () => clearInterval(interval);
+  }, [fetchTables]);
 
   const handleAddTable = async () => {
     if (newTable?.NumeroMesa && newTable.Estado) {
