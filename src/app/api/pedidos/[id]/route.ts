@@ -138,6 +138,10 @@ export async function DELETE(request: Request, { params }: Segments) {
 
   try {
     await prisma.$transaction(async (tx) => {
+      await tx.comandas_cocina.deleteMany({
+        where: { PedidoID: pedidoId },
+      });
+
       await tx.detallepedidos.deleteMany({
         where: { PedidoID: pedidoId },
       });
