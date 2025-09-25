@@ -406,30 +406,6 @@ export const MesaOcupada = () => {
                             </Button>
                           }
                         />
-                        <BoletaCocinaModal
-                          mode="reimprimir"
-                          pedidoId={pedido.PedidoID}
-                          mesas={selectedTables}
-                          orderItems={pedido.detalles
-                            .filter((detalle: any) => !detalle.Impreso)
-                            .map((detalle: any) => ({
-                              DetalleID: detalle.DetalleID,
-                              PlatoID: detalle.PlatoID,
-                              Descripcion: detalle.descripcionPlato,
-                              Cantidad: detalle.Cantidad,
-                            }))}
-                          onPrintSuccess={() => {
-                            fetchPedido();
-                          }}
-                          triggerButton={
-                            <Button
-                              className="w-full text-sm sm:text-base transition-all duration-300 ease-in-out transform hover:scale-105 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-md hover:shadow-lg"
-                              disabled={!pedido || !pedido.detalles.some((detalle: any) => !detalle.Impreso)}
-                            >
-                              <Printer className="w-4 h-4 mr-2" /> Imprimir Solo Platos Nuevos
-                            </Button>
-                          }
-                        />
                       </div>
                     )}
 

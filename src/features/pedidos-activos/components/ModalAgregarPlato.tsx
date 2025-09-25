@@ -332,20 +332,44 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                               for (const item of orderItems) {
                                 await addPlatoToPedido(item.PlatoID, item.Cantidad);
                               }
-                              // Crear la comanda para impresión
+                              // Crear la comanda para impresión SOLO de los platos nuevos
+                              const detallesParaComanda = orderItems.map(item => ({
+                                PlatoID: item.PlatoID,
+                                Cantidad: item.Cantidad,
+                                Descripcion: item.Descripcion || "Plato sin descripción"
+                              }));
+
+                              console.log("🖨️ Creando comanda para nuevos platos (mobile):", detallesParaComanda);
+                              console.log("📝 Comentario para nuevos platos (mobile):", comentario);
+
                               const comandaResponse = await fetch("/api/comanda-cocina", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({
                                   pedidoID: pedido.PedidoID,
-                                  comentario: "",
+                                  comentario: comentario,
+                                  detalles: detallesParaComanda
                                 }),
                               });
                               if (comandaResponse.ok) {
+                                const comandaData = await comandaResponse.json();
+                                console.log("✅ Comanda creada exitosamente (mobile):", {
+                                  ComandaID: comandaData.ComandaID,
+                                  Comentario: comandaData.Comentario
+                                });
+                                
                                 await onPedidoUpdated();
                                 setOrderItems([]);
+                                setComentario("");
                                 setShowMobileCart(false);
                                 setDialogOpen(false);
+                                
+                                // Mostrar mensaje de éxito
+                                alert(`¡Platos agregados! Comanda #${comandaData.ComandaID} enviada a cocina para imprimir solo los nuevos platos.`);
+                              } else {
+                                const errorData = await comandaResponse.json();
+                                console.error("❌ Error al crear comanda (mobile):", errorData);
+                                alert(`Error al crear la comanda: ${errorData.message}`);
                               }
                             } catch (error) {
                               console.error("Error:", error);
@@ -469,6 +493,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                             }));
 
                             console.log("🖨️ Creando comanda para nuevos platos:", detallesParaComanda);
+                            console.log("📝 Comentario para nuevos platos:", comentario);
 
                             const comandaResponse = await fetch("/api/comanda-cocina", {
                               method: "POST",

@@ -36,13 +36,13 @@ export async function POST(req: NextRequest) {
         return `${d.Cantidad}x ${descripcion}`;
       }).join(", ");
 
-      // Información técnica para la app puente (no visible al usuario)
-      const infoTecnica = `REIMPRESIÓN - Solo: ${platosEspecificos}`;
+      // Información técnica para la app puente - usar "NUEVOS PLATOS" para platos agregados
+      const infoTecnica = `NUEVOS PLATOS - Solo: ${platosEspecificos}`;
       // Solo el comentario del usuario (visible)
       comentarioCompleto = `${infoTecnica}${comentario ? ` | ${comentario}` : ""}`;
-      tipoComanda = "reimpresion";
+      tipoComanda = "nuevos_platos";
       
-      console.log("🖨️ Generando comanda para platos específicos (reimpresión):", {
+      console.log("🖨️ Generando comanda para platos nuevos agregados:", {
         pedidoID,
         detallesRecibidos: detalles,
         platosInfo,
