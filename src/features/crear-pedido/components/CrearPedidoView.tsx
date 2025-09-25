@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, Search, ShoppingCart, Minus, Trash } from "lucide-react"
 import type { empleados, mesas, platos } from "@prisma/client"
+import { ordenarPlatosPorCategoria } from "@/lib/utils"
 import { useEmpleadoStore } from "@/store/empleado"
 import { useRouter } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -44,8 +45,9 @@ export default function MesaLibre({ mesas }: MesaProps) {
         if (!response.ok) {
           throw new Error("Error al obtener los platos")
         }
-        const data = await response.json()
-        setPlatos(data)
+  const data = await response.json()
+  const ordenados = ordenarPlatosPorCategoria(data as platos[]) as platos[]
+  setPlatos(ordenados as PedidoItem[])
       } catch (error) {
         console.error(error)
       } finally {

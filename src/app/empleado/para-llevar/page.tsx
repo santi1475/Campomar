@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { ordenarPlatosPorCategoria } from "@/lib/utils"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEmpleadoStore } from "@/store/empleado"
 import { Button } from "@/components/ui/button"
@@ -13,10 +14,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import ModificarPedidoParaLlevar from "@/features/para-llevar/components/ModificarPedidoParaLlevar"
 
 interface Plato {
-    PlatoID: number
-    Descripcion: string
-    Precio: any
-    CategoriaID: number
+    PlatoID: number;
+    Descripcion: string;
+    Precio: any;
+    PrecioLlevar?: any;
+    CategoriaID: number;
 }
 
 interface DetalleView {
@@ -56,7 +58,8 @@ export default function ParaLlevarPage() {
                 const r = await fetch("/api/platos")
                 if (!r.ok) return
                 const data = await r.json()
-                setPlatos(data)
+                const ordenados = ordenarPlatosPorCategoria(data) as Plato[]
+                setPlatos(ordenados)
             } catch (_) { }
         }
         fetchPlatos()
@@ -95,17 +98,24 @@ export default function ParaLlevarPage() {
     }, [pedidoQuery])
 
     // --- Creación (sin pedidoId) ---
+    // Si PrecioLlevar > 0, se toma como precio final override; si es 0 o null, se usa Precio base
+    const precioFinal = (p: Plato) => {
+        const base = Number(p.Precio || 0);
+        const llevar = Number(p.PrecioLlevar || 0);
+        return llevar > 0 ? llevar : base;
+    };
     const addToOrderLocal = (plato: Plato) => {
-        const existing = orderItems.find((i) => i.PlatoID === plato.PlatoID)
+        const finalPrice = precioFinal(plato);
+        const existing = orderItems.find((i) => i.PlatoID === plato.PlatoID);
         if (existing) {
-            setOrderItems(orderItems.map((i) => (i.PlatoID === plato.PlatoID ? { ...i, Cantidad: i.Cantidad + 1 } : i)))
+            setOrderItems(orderItems.map((i) => (i.PlatoID === plato.PlatoID ? { ...i, Cantidad: i.Cantidad + 1 } : i)));
         } else {
             setOrderItems([
                 ...orderItems,
-                { PlatoID: plato.PlatoID, descripcionPlato: plato.Descripcion, Cantidad: 1, PrecioUnitario: Number(plato.Precio) },
-            ])
+                { PlatoID: plato.PlatoID, descripcionPlato: plato.Descripcion, Cantidad: 1, PrecioUnitario: finalPrice },
+            ]);
         }
-    }
+    };
     const increaseLocal = (pl: DetalleView) =>
         setOrderItems(orderItems.map((i) => (i.PlatoID === pl.PlatoID ? { ...i, Cantidad: i.Cantidad + 1 } : i)))
     const decreaseLocal = (pl: DetalleView) => {
@@ -218,14 +228,17 @@ export default function ParaLlevarPage() {
                             </div>
                             <div className="border-2 border-blue-400 rounded-lg p-6 bg-white flex-1">
                                 <div className="grid grid-cols-3 gap-4 h-full overflow-y-auto scrollbar-thin">
-                                    {filteredPlatos.map(p => (
-                                        <Card key={p.PlatoID} className="cursor-pointer hover:shadow-md bg-gray-100 hover:bg-gray-200 active:scale-95 h-28" onClick={() => addToOrderLocal(p)}>
-                                            <CardContent className="p-3 text-center h-full flex flex-col justify-center">
-                                                <h3 className="font-medium text-gray-900 mb-2 text-sm leading-tight line-clamp-2">{p.Descripcion}</h3>
-                                                <p className="text-base font-semibold">S/. {Number(p.Precio).toFixed(2)}</p>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
+                                    {filteredPlatos.map(p => {
+                                        const finalP = precioFinal(p);
+                                        return (
+                                            <Card key={p.PlatoID} className="cursor-pointer hover:shadow-md bg-gray-100 hover:bg-gray-200 active:scale-95 h-28" onClick={() => addToOrderLocal(p)}>
+                                                <CardContent className="p-3 text-center h-full flex flex-col justify-center">
+                                                    <h3 className="font-medium text-gray-900 mb-2 text-sm leading-tight line-clamp-2">{p.Descripcion}</h3>
+                                                    <p className="text-base font-semibold">S/. {finalP.toFixed(2)}</p>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
@@ -288,14 +301,17 @@ export default function ParaLlevarPage() {
                                 </Select>
                             </div>
                             <div className="grid grid-cols-2 gap-3 max-h-[45vh] overflow-y-auto border rounded p-3 bg-white">
-                                {filteredPlatos.map(p => (
-                                    <Card key={p.PlatoID} className="cursor-pointer bg-gray-100 hover:bg-gray-200 active:scale-95 h-24" onClick={() => addToOrderLocal(p)}>
-                                        <CardContent className="p-2 flex flex-col justify-center text-center h-full">
-                                            <h3 className="text-xs font-medium line-clamp-2 mb-1">{p.Descripcion}</h3>
-                                            <p className="text-xs font-semibold">S/. {Number(p.Precio).toFixed(2)}</p>
-                                        </CardContent>
-                                    </Card>
-                                ))}
+                                {filteredPlatos.map(p => {
+                                    const finalP = precioFinal(p);
+                                    return (
+                                        <Card key={p.PlatoID} className="cursor-pointer bg-gray-100 hover:bg-gray-200 active:scale-95 h-24" onClick={() => addToOrderLocal(p)}>
+                                            <CardContent className="p-2 flex flex-col justify-center text-center h-full">
+                                                <h3 className="text-xs font-medium line-clamp-2 mb-1">{p.Descripcion}</h3>
+                                                <p className="text-xs font-semibold">S/. {finalP.toFixed(2)}</p>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
                             </div>
                         </div>
                         <div className="bg-white rounded-lg shadow-sm p-4">

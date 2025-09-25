@@ -29,6 +29,7 @@ const putSchema = yup.object({
   Descripcion: yup.string().required(),
   Precio: yup.number().required(),
   CategoriaID: yup.number().required(),
+  PrecioLlevar: yup.number().optional().default(0).min(0),
 });
 
 export async function PUT(request: Request, { params }: Segments) {
@@ -46,13 +47,13 @@ export async function PUT(request: Request, { params }: Segments) {
   }
 
   try {
-    const { Descripcion, Precio, CategoriaID } = await putSchema.validate(
+    const { Descripcion, Precio, CategoriaID, PrecioLlevar } = await putSchema.validate(
       await request.json()
     );
 
     const updatedPlato = await prisma.platos.update({
       where: { PlatoID: parseInt(id) },
-      data: { Descripcion, Precio, CategoriaID },
+      data: { Descripcion, Precio, CategoriaID, PrecioLlevar: PrecioLlevar ?? 0 },
     });
 
     return NextResponse.json(updatedPlato);

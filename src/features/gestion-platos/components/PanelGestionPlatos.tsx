@@ -17,9 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Definimos un tipo local para manejar los platos en el cliente sin usar 'Decimal'
-type PlatoCliente = Omit<platos, 'Precio'> & {
+// Definimos un tipo local para manejar los platos en el cliente sin usar 'Decimal' (incluye PrecioLlevar)
+type PlatoCliente = Omit<platos, 'Precio' | 'PrecioLlevar'> & {
   Precio: number | null;
+  PrecioLlevar: number | null;
 };
 
 export const GestionPlatos = () => {
@@ -29,6 +30,7 @@ export const GestionPlatos = () => {
     PlatoID: 0,
     Descripcion: "",
     Precio: 0,
+    PrecioLlevar: 0,
     CategoriaID: 1,
     Activo: true
   });
@@ -47,6 +49,7 @@ export const GestionPlatos = () => {
         const platosConNumeros = data.map(plato => ({
           ...plato,
           Precio: plato.Precio ? Number(plato.Precio) : null,
+          PrecioLlevar: plato.PrecioLlevar ? Number(plato.PrecioLlevar) : 0,
         }));
         setDishes(platosConNumeros);
       } catch (error) {
@@ -81,8 +84,8 @@ export const GestionPlatos = () => {
         });
         if (!response.ok) throw new Error("Error al añadir el plato");
         const plato = await response.json();
-        setDishes([...dishes, { ...plato, Precio: Number(plato.Precio) }]);
-        setNewDish({ PlatoID: 0, Descripcion: "", Precio: 0, CategoriaID: 1, Activo: true });
+        setDishes([...dishes, { ...plato, Precio: Number(plato.Precio), PrecioLlevar: Number(plato.PrecioLlevar || 0) }]);
+        setNewDish({ PlatoID: 0, Descripcion: "", Precio: 0, PrecioLlevar: 0, CategoriaID: 1, Activo: true });
       } catch (error) {
         console.error(error);
       } finally {
@@ -105,7 +108,7 @@ export const GestionPlatos = () => {
         setDishes((prevDishes) =>
           prevDishes.map((dish) =>
             dish.PlatoID === updatedPlato.PlatoID 
-              ? { ...updatedPlato, Precio: Number(updatedPlato.Precio) }
+              ? { ...updatedPlato, Precio: Number(updatedPlato.Precio), PrecioLlevar: Number(updatedPlato.PrecioLlevar || 0) }
               : dish
           )
         );
@@ -180,6 +183,28 @@ export const GestionPlatos = () => {
                   }
                 }}
                 placeholder="Precio"
+                type="number"
+                step="0.01"
+                className="mt-1 border-gray-300 focus:border-gray-400 focus:ring focus:ring-gray-200 focus:ring-opacity-50"
+              />
+            </div>
+            <div>
+              <Label htmlFor="dishExtraPrice" className="text-sm font-medium text-gray-700">
+                {editingDish ? "Editar Precio Final Para Llevar" : "Precio Final Para Llevar"}
+              </Label>
+              <Input
+                id="dishExtraPrice"
+                value={editingDish?.PrecioLlevar ?? newDish.PrecioLlevar!}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  const finalPrice = isNaN(value) ? 0 : value;
+                  if (editingDish) {
+                    setEditingDish({ ...editingDish, PrecioLlevar: finalPrice });
+                  } else {
+                    setNewDish({ ...newDish, PrecioLlevar: finalPrice });
+                  }
+                }}
+                placeholder="Dejar en 0 si usa el precio normal"
                 type="number"
                 step="0.01"
                 className="mt-1 border-gray-300 focus:border-gray-400 focus:ring focus:ring-gray-200 focus:ring-opacity-50"

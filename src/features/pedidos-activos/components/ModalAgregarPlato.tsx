@@ -15,6 +15,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, Search, Trash, X } from "lucide-react"
 import type { platos } from "@prisma/client"
+import { ordenarPlatosPorCategoria } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal"
 
@@ -66,8 +67,9 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
         if (!response.ok) {
           throw new Error("Error al obtener los platos")
         }
-        const data = await response.json()
-        setPlatos(data)
+  const data = await response.json()
+  const ordenados = ordenarPlatosPorCategoria(data as platos[]) as platos[]
+  setPlatos(ordenados as any)
       } catch (error) {
         console.error(error)
       } finally {

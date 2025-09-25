@@ -42,6 +42,7 @@ model platos {
   Precio         Decimal?         @db.Decimal(10, 2)
   CategoriaID    Int
   Activo         Boolean?         @default(true)
+  PrecioLlevar   Decimal?         @default(0.00)
   detallepedidos detallepedidos[]
   categorias     categorias       @relation(fields: [CategoriaID], references: [CategoriaID], onDelete: NoAction, onUpdate: NoAction)
 }

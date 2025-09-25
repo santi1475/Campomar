@@ -24,11 +24,12 @@ const postSchema = yup.object({
   Descripcion: yup.string().required(),
   Precio: yup.number().required(),
   CategoriaID: yup.number().required(),
+  PrecioLlevar: yup.number().optional().default(0).min(0),
 });
 
 export async function POST(request: Request) {
   try {
-    const { Descripcion, Precio, CategoriaID } = await postSchema.validate(
+    const { Descripcion, Precio, CategoriaID, PrecioLlevar } = await postSchema.validate(
       await request.json()
     );
 
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
         Descripcion,
         Precio,
         CategoriaID,
+        PrecioLlevar: PrecioLlevar ?? 0,
       },
     });
 

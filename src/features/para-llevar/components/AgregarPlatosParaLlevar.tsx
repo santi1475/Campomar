@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { ordenarPlatosPorCategoria } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -25,7 +26,7 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, onAddPlato
     const [comentario, setComentario] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => { if (open) { fetch('/api/platos').then(r => r.ok ? r.json() : []).then(d => setPlatos(d)); } }, [open]);
+    useEffect(() => { if (open) { fetch('/api/platos').then(r => r.ok ? r.json() : []).then(d => { const ord = ordenarPlatosPorCategoria(d as any[]) as any[]; setPlatos(ord as Plato[]); }); } }, [open]);
 
     const filtrados = platos.filter(p => {
         const texto = p.Descripcion.toLowerCase().includes(search.toLowerCase());
