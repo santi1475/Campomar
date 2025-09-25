@@ -140,7 +140,7 @@
               {/* Mesas seleccionadas */}
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-3 sm:space-y-0">
                 <div className="flex flex-col space-y-2">
-                  <span className="font-medium text-sm sm:text-base text-gray-700">Mesas seleccionadas:</span>
+                  <span className="font-medium text-sm sm:text-base text-gray-700">- Mesas seleccionadas:</span>
                   <div className="flex flex-wrap gap-1 sm:gap-2 max-w-full">
                     {selectedTables.length === 0 ? (
                       <span className="text-xs sm:text-sm text-gray-500 italic">Ninguna mesa seleccionada</span>
