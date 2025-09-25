@@ -19,7 +19,7 @@ export async function PUT(
     // Actualizar solo los detalles especificados como impresos
     const updateResult = await prisma.detallepedidos.updateMany({
       where: {
-        PedidoID: pedidoId,
+        PedidoID: parseInt(params.id),
         DetalleID: {
           in: detalleIds,
         },
@@ -32,7 +32,7 @@ export async function PUT(
     // Log para depuración: mostrar los detalles actualizados
     const detallesActualizados = await prisma.detallepedidos.findMany({
       where: {
-        PedidoID: pedidoId,
+        PedidoID: parseInt(params.id),
         DetalleID: {
           in: detalleIds,
         },
