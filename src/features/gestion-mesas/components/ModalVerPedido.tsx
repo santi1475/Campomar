@@ -1,7 +1,25 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -14,7 +32,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { ShoppingCart, Receipt, Utensils } from "lucide-react"
+import { ShoppingCart, Receipt, Utensils, Check } from "lucide-react"
 
 interface DetallePedido {
   DetalleID: number
@@ -40,6 +58,9 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
   const [pedidoData, setPedidoData] = useState<PedidoData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [tipoPago, setTipoPago] = useState<number | null>(null)
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
+  const router = useRouter()
 
   const fetchPedidoData = async () => {
     setLoading(true)
@@ -70,10 +91,63 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
     } else {
       setPedidoData(null)
       setError(null)
+      setTipoPago(null) // Resetear tipo de pago al cerrar
     }
   }
 
-   const formatCurrency = (amount: number) => {
+  const procesarPago = async () => {
+    if (!pedidoData || !tipoPago) return
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/pedidos/${pedidoData.PedidoID}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          Estado: false,
+          TipoPago: tipoPago,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Error al procesar el pago")
+      }
+
+      // Éxito
+      handleOpenChange(false) // Cerrar modal
+      router.refresh() // Recargar la página para actualizar el estado de las mesas
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al pagar")
+    } finally {
+      setLoading(false)
+      setIsConfirmDialogOpen(false)
+    }
+  }
+
+  const handlePagarPedido = () => {
+    if (!tipoPago) {
+      alert("Por favor, selecciona un método de pago.")
+      return
+    }
+    setIsConfirmDialogOpen(true)
+  }
+
+  const buttonColor = (() => {
+    switch (tipoPago) {
+      case 1:
+        return "bg-[#00631b] hover:bg-[#00631b]/90"
+      case 2:
+        return "bg-[#931194] hover:bg-[#931194]/90"
+      case 3:
+        return "bg-[#f7762c] hover:bg-[#f7762c]/90"
+      default:
+        return ""
+    }
+  })()
+
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-PE", { // Cambiado a locale de Perú
       style: "currency",
       currency: "PEN", // Cambiado a Sol Peruano
@@ -176,11 +250,58 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
                   <span>Total del Pedido:</span>
                   <span className="text-2xl text-primary">{formatCurrency(pedidoData.total)}</span>
                 </div>
+                <Separator className="mt-4" />
+              </CardContent>
+            </Card>
+
+            {/* Sección de Pago */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-end">
+                  <Select onValueChange={(value) => setTipoPago(Number(value))} value={tipoPago?.toString() || ""}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Método de pago" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Efectivo</SelectItem>
+                      <SelectItem value="2">Yape</SelectItem>
+                      <SelectItem value="3">POS</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    onClick={handlePagarPedido}
+                    disabled={!tipoPago || loading}
+                    className={`w-full sm:w-auto h-12 px-8 ${buttonColor} transition-all duration-300 ease-in-out transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold`}
+                  >
+                    <Check className="w-5 h-5 mr-2" />
+                    Pagar Pedido
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
         )}
       </DialogContent>
+
+      {/* Diálogo de confirmación de pago */}
+      <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Pago</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas procesar el pago? Esta acción marcará el pedido como completado y liberará
+              la(s) mesa(s).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={procesarPago} disabled={loading}>
+              {loading ? "Procesando..." : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   )
 }

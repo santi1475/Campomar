@@ -195,57 +195,59 @@ export default function BoletaCocinaModal({
         </DialogHeader>
 
         {!isEditingInstruccion ? (
-          <>
-            <div className="flex-1 overflow-y-auto max-h-[50vh] sm:max-h-[60vh] md:max-h-[70vh] -mx-3 px-3 sm:mx-0 sm:px-0">
+          <div className="flex flex-col h-[70vh]">
+            <div className="flex-1 overflow-y-auto -mx-3 px-3 sm:mx-0 sm:px-0">
               <BoletaCocina ref={receiptRef} orderItems={orderItems} mesas={mesas} comentario={comentario} />
             </div>
-            <div className="flex flex-col gap-2 pt-2 border-t">
-              <div className="flex items-center justify-center">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="text-xs sm:text-sm"
-                  onClick={handleStartEditingInstruccion}
-                >
-                  {comentario ? "Editar instrucción" : "Agregar instrucción para cocina"}
-                </Button>
-                {comentario && (
+            <div className="mt-2">
+              <div className="flex flex-col gap-2 border-t pt-2">
+                <div className="flex items-center justify-center">
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="sm"
-                    className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => setComentario("")}
+                    className="text-xs sm:text-sm"
+                    onClick={handleStartEditingInstruccion}
                   >
-                    Eliminar
+                    {comentario ? "Editar instrucción" : "Agregar instrucción para cocina"}
                   </Button>
+                  {comentario && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => setComentario("")}
+                    >
+                      Eliminar
+                    </Button>
+                  )}
+                </div>
+                {comentario && (
+                  <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded border">
+                    <strong>Instrucción:</strong> {comentario}
+                  </div>
                 )}
               </div>
-              {comentario && (
-                <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded border">
-                  <strong>Instrucción:</strong> {comentario}
-                </div>
-              )}
+              <div className="flex flex-col sm:flex-row gap-2 sm:justify-end pt-2 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs sm:text-sm order-2 sm:order-1 bg-transparent"
+                  onClick={() => setIsOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Cerrar
+                </Button>
+                <Button
+                  size="sm"
+                  className="text-xs sm:text-sm order-1 sm:order-2"
+                  onClick={handleAction}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Procesando..." : mode === "crear" ? "Finalizar e Imprimir" : "Reimprimir"}
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end pt-2 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs sm:text-sm order-2 sm:order-1 bg-transparent"
-                onClick={() => setIsOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cerrar
-              </Button>
-              <Button
-                size="sm"
-                className="text-xs sm:text-sm order-1 sm:order-2"
-                onClick={handleAction}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Procesando..." : mode === "crear" ? "Finalizar e Imprimir" : "Reimprimir"}
-              </Button>
-            </div>
-          </>
+          </div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-4 h-[70vh]">
             <div className={`flex flex-col gap-3 ${showPreviewOnMobile ? "hidden lg:flex" : "flex"} lg:w-1/2`}>

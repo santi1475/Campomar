@@ -3,7 +3,7 @@
 import { CardEmpleado } from "@/components/shared/ui/CardNavegacion";
 import { useEmpleadoStore } from "@/store/empleado";
 import { empleados } from "@prisma/client";
-import { Armchair, BookOpen, HandPlatter } from "lucide-react";
+import { Armchair, BookOpen, HandPlatter, ShoppingBag } from "lucide-react";
 import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -47,6 +47,11 @@ const EmpleadoPage = () => {
           texto="Ver Carta"
           icono={<BookOpen size={60} />}
           direccion="/empleado/carta"
+        />
+        <CardEmpleado
+          texto="Para Llevar"
+          icono={<ShoppingBag size={60} />}
+          direccion="/empleado/para-llevar/lista"
         />
       </div>
     </div>

@@ -5,11 +5,15 @@ import * as yup from "yup";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const estadoParam = searchParams.get("Estado");
+  const paraLlevarParam = searchParams.get("ParaLlevar");
 
-  const where: { Estado?: boolean } = {};
+  const where: { Estado?: boolean; ParaLlevar?: boolean } = {};
 
   if (estadoParam !== null) {
     where.Estado = estadoParam === "true";
+  }
+  if (paraLlevarParam !== null) {
+    where.ParaLlevar = paraLlevarParam === "true";
   }
 
   try {
@@ -36,11 +40,12 @@ const postSchema = yup.object({
   EmpleadoID: yup.number().required(),
   Fecha: yup.date().required(),
   Total: yup.number().optional(),
+  ParaLlevar: yup.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
-    const { EmpleadoID, Fecha, Total } = await postSchema.validate(
+    const { EmpleadoID, Fecha, Total, ParaLlevar } = await postSchema.validate(
       await req.json()
     );
     const pedido = await prisma.pedidos.create({
@@ -48,7 +53,8 @@ export async function POST(req: NextRequest) {
         EmpleadoID,
         Fecha,
         Total: Total ?? 0,
-        Estado: true 
+        Estado: true,
+        ParaLlevar: ParaLlevar ?? false,
       },
     });
 

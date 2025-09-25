@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import ModalIncrementarPlatos from "./ModalIncrementarPlatos"
 
 export const MesaOcupada = () => {
   const empleado: empleados = useEmpleadoStore((state: any) => state.empleado)
@@ -38,6 +39,7 @@ export const MesaOcupada = () => {
   const [error, setError] = useState<string | null>(null)
   const [tipoPago, setTipoPago] = useState<number | null>(null)
   const [isPlatosOpen, setIsPlatosOpen] = useState<boolean>(false)
+  const [isModalIncrementarOpen, setIsModalIncrementarOpen] = useState<boolean>(false)
 
   const fetchPedido = useCallback(async () => {
     setIsLoading(true)
@@ -130,6 +132,12 @@ export const MesaOcupada = () => {
   }
 
   const handleIncrementarCantidad = async (detalleId: number) => {
+    // Abrir modal de incrementar platos en lugar de incrementar directamente
+    setIsModalIncrementarOpen(true)
+  }
+
+  // Función original para incrementar (usada internamente por el modal)
+  const handleIncrementarCantidadOriginal = async (detalleId: number) => {
     setIsLoading(true)
     try {
       const response = await fetch(`/api/detallepedidos/${detalleId}`, {
@@ -249,6 +257,49 @@ export const MesaOcupada = () => {
     }
   }
 
+  // Función para manejar incrementos desde el modal
+  const handleIncrementarFromModal = async (detalleId: number, cantidad: number) => {
+    for (let i = 0; i < cantidad; i++) {
+      await handleIncrementarCantidadOriginal(detalleId)
+    }
+  }
+
+  // Función para imprimir comandas con los nuevos platos incrementados
+  const handleImprimirNuevosIncrement = async (platosNuevos: any[], comentario: string) => {
+    try {
+      // Crear comentario para la comanda con los platos incrementados
+      const platosTexto = platosNuevos.map(plato => 
+        `${plato.Cantidad}x ${plato.Descripcion}`
+      ).join(", ")
+      
+      const comentarioCompleto = `NUEVOS PLATOS - Solo: ${platosTexto}${comentario ? ` | ${comentario}` : ""}`
+      
+      // Enviar comanda a cocina
+      const comandaResponse = await fetch("/api/comanda-cocina", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pedidoID: pedido.PedidoID,
+          comentario: comentarioCompleto,
+        }),
+      })
+
+      if (!comandaResponse.ok) {
+        const error = await comandaResponse.json()
+        throw new Error(error.message || "Error al crear la comanda")
+      }
+
+      const comanda = await comandaResponse.json()
+      console.log(`✅ Comanda ${comanda.ComandaID} creada para incrementos del pedido ${pedido.PedidoID}`)
+      
+      // Refrescar datos del pedido
+      await fetchPedido()
+    } catch (error) {
+      console.error("Error al imprimir comanda de incrementos:", error)
+      throw error
+    }
+  }
+
   const [isYapeDialogOpen, setIsYapeDialogOpen] = useState(false)
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
   const [isImageModalOpen, setIsImageModalOpen] = useState(false)
@@ -353,6 +404,14 @@ export const MesaOcupada = () => {
                       pedido={pedido}
                       onPedidoUpdated={fetchPedido}
                     />
+
+                    <Button
+                      onClick={() => setIsModalIncrementarOpen(true)}
+                      disabled={!pedido || pedido.detalles.length === 0}
+                      className="w-full text-sm sm:text-base transition-all duration-300 ease-in-out transform hover:scale-105 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-md hover:shadow-lg"
+                    >
+                      <PlusIcon className="w-4 h-4 mr-2" /> Agregar Más Platos
+                    </Button>
 
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -480,22 +539,33 @@ export const MesaOcupada = () => {
                                       >
                                         <MinusIcon size={14} />
                                       </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleIncrementarCantidad(detalle.DetalleID)}
-                                        className="p-2 hover:bg-gray-100 transition-colors"
-                                      >
-                                        <PlusIcon size={14} />
-                                      </Button>
-                                      <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => handleEliminarPlato(detalle.DetalleID)}
-                                        className="p-2 hover:bg-red-600 transition-colors"
-                                      >
-                                        <Trash2 size={14} />
-                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            className="p-2 hover:bg-red-600 transition-colors"
+                                          >
+                                            <Trash2 size={14} />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>¿Eliminar plato?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              ¿Estás seguro que deseas eliminar &quot;{detalle.descripcionPlato}&quot; del pedido?
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction asChild>
+                                              <Button variant="destructive" onClick={() => handleEliminarPlato(detalle.DetalleID)}>
+                                                Eliminar
+                                              </Button>
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </div>
                                   </TableCell>
                                 </TableRow>
@@ -536,14 +606,33 @@ export const MesaOcupada = () => {
                                       <h3 className="font-semibold text-sm leading-tight text-gray-800">
                                         {detalle.descripcionPlato}
                                       </h3>
-                                      <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => handleEliminarPlato(detalle.DetalleID)}
-                                        className="p-1.5 ml-2 flex-shrink-0 hover:scale-105 transition-transform"
-                                      >
-                                        <Trash2 size={12} />
-                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            className="p-1.5 ml-2 flex-shrink-0 hover:scale-105 transition-transform"
+                                          >
+                                            <Trash2 size={12} />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>¿Eliminar plato?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              ¿Estás seguro que deseas eliminar &quot;{detalle.descripcionPlato}&quot; del pedido?
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction asChild>
+                                              <Button variant="destructive" onClick={() => handleEliminarPlato(detalle.DetalleID)}>
+                                                Eliminar
+                                              </Button>
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-3 text-sm">
@@ -575,14 +664,6 @@ export const MesaOcupada = () => {
                                         <span className="font-bold text-lg min-w-[2.5rem] text-center bg-white px-3 py-1 rounded border">
                                           {detalle.Cantidad}
                                         </span>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => handleIncrementarCantidad(detalle.DetalleID)}
-                                          className="p-2 hover:bg-green-50 hover:border-green-200 transition-colors"
-                                        >
-                                          <PlusIcon size={14} />
-                                        </Button>
                                       </div>
                                     </div>
                                   </div>
@@ -737,6 +818,15 @@ export const MesaOcupada = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal para incrementar platos */}
+      <ModalIncrementarPlatos
+        isOpen={isModalIncrementarOpen}
+        onClose={() => setIsModalIncrementarOpen(false)}
+        pedido={pedido}
+        onPlatoIncrement={handleIncrementarFromModal}
+        onImprimirNuevos={handleImprimirNuevosIncrement}
+      />
     </div>
   )
 }

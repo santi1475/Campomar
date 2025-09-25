@@ -11,6 +11,7 @@ import { mesas } from "@prisma/client";
 import { Spinner } from "@/components/shared/ui/spinner";
 import PedidosModal from "@/features/gestion-mesas/components/ModalVerPedido";
 import { ModalConfirm } from "@/components/shared/ui/ModalConfirm";
+import { PedidosParaLlevarActivos } from "@/features/gestion-sala/components/PedidosParaLlevarActivos";
 
 interface PedidoActivo {
   PedidoID: number;
@@ -179,6 +180,8 @@ export const GestionMesas = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Pedidos para llevar activos */}
+          <PedidosParaLlevarActivos />
           <div className="flex flex-wrap gap-4 mb-6">
             <div className="flex-1">
               <Label htmlFor="tableNumber" className="text-sm font-medium text-gray-700">

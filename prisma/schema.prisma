@@ -27,6 +27,7 @@ model pedidos {
   Total          Decimal          @db.Decimal(10, 2)
   Estado         Boolean          @default(true)
   TipoPago       Int?
+  ParaLlevar     Boolean          @default(false)
 
   detallepedidos detallepedidos[]
   pedido_mesas   pedido_mesas[]

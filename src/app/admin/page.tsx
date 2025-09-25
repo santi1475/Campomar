@@ -5,6 +5,7 @@ import { GestionMesas } from "@/features/gestion-mesas/components/PanelGestionMe
 import { GestionEmpleados } from "@/features/gestion-empleados/components/PanelGestionEmpleados";
 import { GestionPlatos } from "@/features/gestion-platos/components/PanelGestionPlatos";
 import { DashboardSummary } from "@/features/dashboard/components/AdminDashboard";
+import dynamic from "next/dynamic";
 import { AdminHeader } from "@/components/shared/layout/AdminHeader";
 import { useEmpleadoStore } from "@/store/empleado";
 import { useEffect, useState } from "react";
@@ -37,7 +38,7 @@ export default function AdminPage() {
 
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="tables" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 gap-2 mb-6">
             <TabsTrigger
               value="tables"
               className="bg-white shadow-sm hover:bg-gray-50 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
@@ -62,6 +63,12 @@ export default function AdminPage() {
             >
               Dashboard
             </TabsTrigger>
+            <TabsTrigger
+              value="historial-pagos"
+              className="bg-white shadow-sm hover:bg-gray-50 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+            >
+              Historial
+            </TabsTrigger>
           </TabsList>
 
           <div className="bg-white shadow rounded-lg p-4 sm:p-6">
@@ -80,9 +87,21 @@ export default function AdminPage() {
             <TabsContent value="dashboard-summary">
               <DashboardSummary />
             </TabsContent>
+            <TabsContent value="historial-pagos">
+              {/* Carga diferida del historial para no impactar el bundle inicial */}
+              <HistorialPagosLoader />
+            </TabsContent>
           </div>
         </Tabs>
       </main>
     </div>
   );
 }
+
+// Dynamic import para evitar cargarlo en el primer paint
+const HistorialPagosLoader = dynamic(() => import("@/app/admin/historial-pagos/page"), {
+  ssr: false,
+  loading: () => (
+    <div className="py-10 text-center text-sm text-gray-500">Cargando historial...</div>
+  ),
+});
