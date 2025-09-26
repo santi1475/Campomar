@@ -58,6 +58,8 @@ export async function GET(req: NextRequest) {
       PedidoID: pedidoActivo.PedidoID,
       detalles,
       total,
+      TipoPago: pedidoActivo.TipoPago ?? null,
+      Estado: pedidoActivo.Estado,
     };
 
     return NextResponse.json(resultado);

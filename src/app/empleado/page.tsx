@@ -43,11 +43,13 @@ const EmpleadoPage = () => {
           icono={<Armchair size={60} />}
           direccion="/empleado/sala"
         />
+        {/*
         <CardEmpleado
           texto="Ver Carta"
           icono={<BookOpen size={60} />}
           direccion="/empleado/carta"
         />
+        */}
         <CardEmpleado
           texto="Para Llevar"
           icono={<ShoppingBag size={60} />}

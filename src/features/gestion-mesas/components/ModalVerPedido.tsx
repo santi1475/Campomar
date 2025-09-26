@@ -46,6 +46,8 @@ interface PedidoData {
   PedidoID: number
   detalles: DetallePedido[]
   total: number
+  TipoPago?: number | null
+  Estado?: boolean
 }
 
 interface PedidosModalProps {
@@ -77,6 +79,12 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
 
       const data = await response.json()
       setPedidoData(data)
+      // Inicializar select con TipoPago existente si lo hay
+      if (data?.TipoPago) {
+        setTipoPago(data.TipoPago)
+      } else {
+        setTipoPago(null)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido")
     } finally {
@@ -97,6 +105,11 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
 
   const procesarPago = async () => {
     if (!pedidoData || !tipoPago) return
+    // Evitar reprocesar si ya está cerrado
+    if (pedidoData.Estado === false) {
+      setError("El pedido ya fue cerrado anteriormente.")
+      return
+    }
 
     setLoading(true)
     try {
@@ -116,8 +129,10 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
       }
 
       // Éxito
-      handleOpenChange(false) // Cerrar modal
-      router.refresh() // Recargar la página para actualizar el estado de las mesas
+  // Refrescar datos localmente antes de cerrar para mejor UX
+  setPedidoData({ ...pedidoData, Estado: false, TipoPago: tipoPago })
+  handleOpenChange(false)
+  router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al pagar")
     } finally {
@@ -202,9 +217,14 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
                     <Utensils className="h-5 w-5" />
                     Pedido #{pedidoData.PedidoID}
                   </span>
-                  <Badge variant="secondary" className="text-lg px-3 py-1">
-                    {pedidoData.detalles.length} plato{pedidoData.detalles.length !== 1 ? "s" : ""}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-lg px-3 py-1">
+                      {pedidoData.detalles.length} plato{pedidoData.detalles.length !== 1 ? "s" : ""}
+                    </Badge>
+                    {pedidoData.Estado === false && (
+                      <Badge className="bg-green-600 hover:bg-green-600 text-white">Pagado</Badge>
+                    )}
+                  </div>
                 </CardTitle>
               </CardHeader>
             </Card>
@@ -258,7 +278,11 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
             <Card>
               <CardContent className="pt-6">
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-end">
-                  <Select onValueChange={(value) => setTipoPago(Number(value))} value={tipoPago?.toString() || ""}>
+                  <Select
+                    onValueChange={(value) => setTipoPago(Number(value))}
+                    value={tipoPago?.toString() || ""}
+                    disabled={pedidoData.Estado === false}
+                  >
                     <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Método de pago" />
                     </SelectTrigger>
@@ -271,11 +295,11 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
 
                   <Button
                     onClick={handlePagarPedido}
-                    disabled={!tipoPago || loading}
+                    disabled={!tipoPago || loading || pedidoData.Estado === false}
                     className={`w-full sm:w-auto h-12 px-8 ${buttonColor} transition-all duration-300 ease-in-out transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold`}
                   >
                     <Check className="w-5 h-5 mr-2" />
-                    Pagar Pedido
+                    {pedidoData.Estado === false ? "Ya Pagado" : "Pagar Pedido"}
                   </Button>
                 </div>
               </CardContent>
