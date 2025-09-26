@@ -1,6 +1,10 @@
 import prisma from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
+// Forzar que este endpoint sea siempre dinámico (evita intentos de prerender y el warning de request.url)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0; // Sin caché ISR
+
 /*
   GET /api/historial-pagos
   Query params opcionales:
@@ -42,7 +46,8 @@ function getLimaDayRange(fechaISO?: string) {
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
+    // Usar nextUrl que ya entrega un URL ya parseado sin marcar como uso estático prohibido
+    const searchParams = req.nextUrl.searchParams;
     const fechaStr = searchParams.get("fecha"); // YYYY-MM-DD en hora local Lima
   const empleadoId = searchParams.get("empleadoId");
   const metodoPago = searchParams.get("metodoPago");
@@ -105,9 +110,9 @@ export async function GET(req: NextRequest) {
       rangoUTC: { inicio: start.toISOString(), fin: end.toISOString() },
       count: result.length,
       pedidos: result,
-    });
+    }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error("/api/historial-pagos GET error", error);
-    return NextResponse.json({ message: "Error al obtener historial de pagos", error: String(error) }, { status: 500 });
+    return NextResponse.json({ message: "Error al obtener historial de pagos", error: String(error) }, { status: 500, headers: { 'Cache-Control': 'no-store' } });
   }
 }

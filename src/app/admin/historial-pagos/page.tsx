@@ -86,7 +86,8 @@ export default function HistorialPagosPage() {
         setError(null);
         try {
             const qs = buildQuery();
-            const res = await fetch(`/api/historial-pagos?${qs}`);
+            // Añadimos timestamp para bust de caché y cache: 'no-store' para evitar almacenamiento
+            const res = await fetch(`/api/historial-pagos?${qs}&_=${Date.now()}`, { cache: 'no-store' });
             if (!res.ok) throw new Error("No se pudo obtener historial");
             const json: HistorialResponse = await res.json();
             setData(json.pedidos);
@@ -101,7 +102,7 @@ export default function HistorialPagosPage() {
 
     const fetchEmpleados = async () => {
         try {
-            const res = await fetch("/api/empleados");
+            const res = await fetch(`/api/empleados?_=${Date.now()}`, { cache: 'no-store' });
             if (!res.ok) return;
             const json = await res.json();
             setEmpleados(json);
