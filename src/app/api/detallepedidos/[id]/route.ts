@@ -82,13 +82,24 @@ export async function PUT(request: Request, { params }: Segments) {
       });
 
       // Recalcular el total dentro de la transacción
+      // Traer si el pedido es ParaLlevar
+      const pedido = await tx.pedidos.findUnique({
+        where: { PedidoID: detallePedido.PedidoID },
+        select: { ParaLlevar: true },
+      });
+
+      const esParaLlevar = pedido?.ParaLlevar === true;
+
       const detalles = await tx.detallepedidos.findMany({
         where: { PedidoID: detallePedido.PedidoID },
         include: { platos: true },
       });
 
       const nuevoTotal = detalles.reduce((acc, detalle) => {
-        return acc + detalle.Cantidad * detalle.platos.Precio!.toNumber();
+        const base = detalle.platos.Precio ? detalle.platos.Precio.toNumber() : 0;
+        const alt = detalle.platos.PrecioLlevar ? Number(detalle.platos.PrecioLlevar) : 0;
+        const precio = esParaLlevar && alt > 0 ? alt : base;
+        return acc + detalle.Cantidad * precio;
       }, 0);
 
       await tx.pedidos.update({
