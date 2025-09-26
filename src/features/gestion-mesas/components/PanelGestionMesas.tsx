@@ -244,7 +244,7 @@ export const GestionMesas = () => {
                       ${
                         table.Estado === "Libre"
                           ? "bg-table-available-bg border-table-available/30 hover:border-table-available/60"
-                          : "bg-table-occupied-bg border-table-occupied/30 hover:border-table-occupied/60"
+                          : "bg-red-100 border-red-300 hover:border-red-500"
                       }
                       group-hover:scale-[1.06]
                     `}
@@ -252,7 +252,7 @@ export const GestionMesas = () => {
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span
                           className={`text-2xl font-bold ${
-                            table.Estado === "Libre" ? "text-table-available" : "text-table-occupied"
+                            table.Estado === "Libre" ? "text-table-available" : "text-red-700"
                           } md:text-3xl lg:text-4xl drop-shadow-sm`}
                         >
                           {table.NumeroMesa}
@@ -290,12 +290,12 @@ export const GestionMesas = () => {
                         className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
                           table.Estado === "Libre"
                             ? "bg-table-available/20 text-table-available border border-table-available/30"
-                            : "bg-table-occupied/20 text-table-occupied border border-table-occupied/30"
+                            : "bg-red-100 text-red-700 border border-red-300"
                         }`}
                       >
                         <div
                           className={`w-2 h-2 rounded-full ${
-                            table.Estado === "Libre" ? "bg-table-available" : "bg-table-occupied"
+                            table.Estado === "Libre" ? "bg-table-available" : "bg-red-500"
                           }`}
                         />
                         {table.Estado}
