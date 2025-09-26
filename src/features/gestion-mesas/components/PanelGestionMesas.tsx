@@ -180,8 +180,8 @@ export const GestionMesas = () => {
 
       <Tabs defaultValue="tables" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="tables">Gestión de Mesas</TabsTrigger>
-          <TabsTrigger value="orders">Pedidos Activos</TabsTrigger>
+          <TabsTrigger value="tables">Panel de Mesas</TabsTrigger>
+          <TabsTrigger value="orders">Pedidos para Llevar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="tables" className="space-y-6 mt-6">
