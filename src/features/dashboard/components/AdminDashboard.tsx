@@ -84,58 +84,37 @@ export const DashboardSummary = () => {
     }
   }, [fetchData, dateRange]);
 
+  const startOfLocalDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+  const endOfLocalDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+
   const setPredefinedRange = (days: number) => {
-    const currentDate = new Date();
-
-    const endDate = new Date(currentDate);
-    endDate.setUTCHours(5, 0, 0, 0);
-    const startDate = new Date(endDate);
-    startDate.setDate(startDate.getDate() - days);
-
-    endDate.setDate(endDate.getDate() + 1);
-    endDate.setUTCHours(4, 59, 59, 999);
+    const now = new Date();
+    const todayStart = startOfLocalDay(now);
+    const effectiveDaysBack = days <= 1 ? days : days - 1; // para 7 => 6 días atrás + hoy = 7 días
+    const start = new Date(todayStart.getTime() - effectiveDaysBack * 24 * 60 * 60 * 1000);
+    const end = endOfLocalDay(now);
 
     setDateRange({
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
     });
-
     setCustomDateMode(false);
     setSelectedPredefinedRange(days);
   };
 
   const setFullYearRange = () => {
-    const currentDate = new Date();
-
-    const startDate = new Date(currentDate.getUTCFullYear(), 0, 1); // Primer día del año (sin hora)
-    startDate.setUTCHours(5, 0, 0, 0); // Ajustar a las 00:00 UTC -5
-
-    // Ajustar al final del día actual en UTC -5
-    const endDate = new Date(currentDate);
-    endDate.setUTCHours(4, 59, 59, 999); // Ajustar a las 23:59 UTC -5
-
-    setDateRange({
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    });
-
+    const now = new Date();
+    const start = startOfLocalDay(new Date(now.getFullYear(), 0, 1));
+    const end = endOfLocalDay(now);
+    setDateRange({ startDate: start.toISOString(), endDate: end.toISOString() });
     setCustomDateMode(false);
     setSelectedPredefinedRange(365);
   };
 
   const handleDateChange = (key: "startDate" | "endDate", value: string) => {
-    const selectedDate = new Date(value);
-
-    const adjustedDate =
-      key === "startDate"
-        ? new Date(selectedDate.setUTCHours(5, 0, 0, 0))
-        : new Date(selectedDate.setUTCHours(4, 59, 59, 999));
-
-    setDateRange((prev) => ({
-      ...prev,
-      [key]: adjustedDate.toISOString(),
-    }));
-
+    const raw = new Date(value + 'T00:00:00'); // interpretado en local
+    const adjusted = key === 'startDate' ? startOfLocalDay(raw) : endOfLocalDay(raw);
+    setDateRange(prev => ({ ...prev, [key]: adjusted.toISOString() }));
     setCustomDateMode(true);
     setSelectedPredefinedRange(null);
   };

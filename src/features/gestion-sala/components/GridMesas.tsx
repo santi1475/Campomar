@@ -8,9 +8,6 @@
   import { useRouter } from "next/navigation"
   import { useEffect, useState } from "react"
   import { Link } from "lucide-react"
-  // import { PedidosParaLlevarActivos } from "./PedidosParaLlevarActivos"
-  // FIX: Update the import path if the file exists elsewhere, for example:
-  import { PedidosParaLlevarActivos } from "@/features/gestion-sala/components/PedidosParaLlevarActivos"
 
   export const Mesas = () => {
     const router = useRouter()

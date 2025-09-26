@@ -1,10 +1,12 @@
 import prisma from "@/lib/db";
 import { NextResponse } from "next/server";
+import { normalizePeruRange } from "@/lib/dateRange";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
+  const peruRange = normalizePeruRange(startDate, endDate);
 
   try {
     // 1. Obtenemos las ventas agrupadas por ID de empleado, asegurándonos de que el ID no sea nulo.
@@ -13,10 +15,7 @@ export async function GET(req: Request) {
       _sum: { Total: true },
       where: {
         Estado: { equals: false }, // Pedidos completadoss pedidos sin empleado
-        Fecha: {
-          gte: startDate ? new Date(startDate) : undefined,
-          lte: endDate ? new Date(endDate) : undefined,
-        },
+        Fecha: peruRange ? { gte: peruRange.start, lte: peruRange.end } : undefined,
       },
       orderBy: {
         _sum: { Total: "desc" },
@@ -53,7 +52,7 @@ export async function GET(req: Request) {
       totalSold: Number(sale._sum.Total) || 0,
     }));
 
-    return NextResponse.json({ salesByEmployee: detailedSales });
+  return NextResponse.json({ salesByEmployee: detailedSales, meta: peruRange ? { appliedPeruRange: { start: peruRange.start.toISOString(), end: peruRange.end.toISOString() } } : undefined });
   } catch (error) {
     console.error("Error al obtener ventas por empleado:", error);
     return NextResponse.json(

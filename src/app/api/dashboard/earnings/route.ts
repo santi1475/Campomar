@@ -1,20 +1,19 @@
 import prisma from "@/lib/db";
 import { NextResponse } from "next/server";
+import { normalizePeruRange } from "@/lib/dateRange";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
+  const peruRange = normalizePeruRange(startDate, endDate);
 
   try {
     // Consulta las ganancias totales
     const totalEarnings = await prisma.pedidos.aggregate({
       _sum: { Total: true },
       where: {
-        Fecha: {
-          gte: startDate ? new Date(startDate) : undefined,
-          lte: endDate ? new Date(endDate) : undefined,
-        },
+        Fecha: peruRange ? { gte: peruRange.start, lte: peruRange.end } : undefined,
         Estado: false,
       },
     });
@@ -24,10 +23,7 @@ export async function GET(req: Request) {
       by: ["TipoPago"],
       _sum: { Total: true },
       where: {
-        Fecha: {
-          gte: startDate ? new Date(startDate) : undefined,
-          lte: endDate ? new Date(endDate) : undefined,
-        },
+        Fecha: peruRange ? { gte: peruRange.start, lte: peruRange.end } : undefined,
         Estado: false,
         TipoPago: { not: null }, // Asegurarse de excluir valores NULL
       },
@@ -55,6 +51,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       earnings: totalEarnings._sum.Total || 0,
       earningsByPaymentType: earningsData,
+      meta: peruRange ? { appliedPeruRange: { start: peruRange.start.toISOString(), end: peruRange.end.toISOString() } } : undefined,
     });
   } catch (error) {
     console.error("Error fetching earnings:", error);
