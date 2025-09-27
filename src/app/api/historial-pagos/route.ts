@@ -82,23 +82,38 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const result = pedidos.map((p) => ({
-      PedidoID: p.PedidoID,
-      Fecha: p.Fecha,
-      Empleado: p.empleados?.Nombre ?? null,
-      EmpleadoID: p.EmpleadoID,
-      MetodoPagoID: p.TipoPago,
-      MetodoPago: p.tipopago?.Descripcion ?? null,
-      ParaLlevar: p.ParaLlevar,
-      Total: p.Total,
-      Platos: p.detallepedidos.map((d) => ({
-        DetalleID: d.DetalleID,
-        PlatoID: d.PlatoID,
-        Descripcion: d.platos?.Descripcion ?? null,
-        Cantidad: d.Cantidad,
-        Subtotal: d.Cantidad * Number(d.platos?.Precio ?? 0),
-      })),
-    }));
+    const result = pedidos.map((p) => {
+      // Calcular subtotales usando PrecioLlevar si aplica y existe (>0)
+      const platosDet = p.detallepedidos.map((d) => {
+        const precioBase = p.ParaLlevar
+          ? (Number(d.platos?.PrecioLlevar ?? 0) > 0
+              ? Number(d.platos?.PrecioLlevar)
+              : Number(d.platos?.Precio ?? 0))
+          : Number(d.platos?.Precio ?? 0);
+        return {
+          DetalleID: d.DetalleID,
+          PlatoID: d.PlatoID,
+          Descripcion: d.platos?.Descripcion ?? null,
+          Cantidad: d.Cantidad,
+          UnitPrecio: precioBase,
+          Subtotal: d.Cantidad * precioBase,
+          EsPrecioLlevar: p.ParaLlevar && (Number(d.platos?.PrecioLlevar ?? 0) > 0)
+        };
+      });
+      const totalCalculado = platosDet.reduce((acc, pl) => acc + pl.Subtotal, 0);
+      return {
+        PedidoID: p.PedidoID,
+        Fecha: p.Fecha,
+        Empleado: p.empleados?.Nombre ?? null,
+        EmpleadoID: p.EmpleadoID,
+        MetodoPagoID: p.TipoPago,
+        MetodoPago: p.tipopago?.Descripcion ?? null,
+        ParaLlevar: p.ParaLlevar,
+        // Si es para llevar usamos el total recalculado para reflejar precio correcto
+        Total: p.ParaLlevar ? totalCalculado : p.Total,
+        Platos: platosDet,
+      };
+    });
 
     const fechaLocal = `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day
       .toString()

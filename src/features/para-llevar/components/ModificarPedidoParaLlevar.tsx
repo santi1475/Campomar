@@ -8,11 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ShoppingCart, Minus, Plus, Trash, Printer, X, Check, ChevronUp, ChevronDown } from "lucide-react";
+import { ShoppingCart, Minus, Plus, Trash, Printer, X, Check, ChevronUp, ChevronDown, Maximize2 } from "lucide-react";
+import Image from "next/image";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { MesaOcupadaAgregar } from "@/features/pedidos-activos/components/ModalAgregarPlato";
 import ModalIncrementarPlatos from "@/features/pedidos-activos/components/ModalIncrementarPlatos";
+import YapeQR from "@/assets/OIP.jpg"
 
 interface Plato { PlatoID: number; Descripcion: string; Precio: any; CategoriaID: number }
 interface DetalleView { DetalleID: number; PlatoID: number; descripcionPlato: string; Cantidad: number; PrecioUnitario: number; Impreso: boolean }
@@ -40,36 +43,29 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
         setIsLoading(true);
         setError(null);
         try {
-            // Obtener datos del pedido
             const pedidoResponse = await fetch(`/api/pedidos/${pedidoId}`, { cache: 'no-store' });
             if (!pedidoResponse.ok) throw new Error("Error al obtener el pedido");
             const pedidoData = await pedidoResponse.json();
 
-            // Obtener detalles del pedido con información de platos
             let detallesConPlatos: any[] = [];
 
-            // Primero intentar obtener desde el endpoint específico
             const detRes = await fetch(`/api/pedidos/${pedidoId}/detalles?t=${Date.now()}`, { cache: 'no-store' });
             if (detRes.ok) {
                 detallesConPlatos = await detRes.json();
             }
 
-            // Si no funcionó o no hay datos, usar fallback
             if (!detRes.ok || !detallesConPlatos.length) {
-                // Obtener detalles básicos
                 const allRes = await fetch('/api/detallepedidos', { cache: 'no-store' });
                 if (allRes.ok) {
                     const todosLosDetalles = await allRes.json();
                     const detallesPedido = todosLosDetalles.filter((d: any) => d.PedidoID === pedidoId);
 
-                    // Obtener información de platos
                     const platosRes = await fetch('/api/platos', { cache: 'no-store' });
                     let platos: any[] = [];
                     if (platosRes.ok) {
                         platos = await platosRes.json();
                     }
 
-                    // Combinar detalles con información de platos
                     detallesConPlatos = detallesPedido.map((detalle: any) => {
                         const plato = platos.find((p: any) => p.PlatoID === detalle.PlatoID);
                         return {
@@ -78,20 +74,27 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                             Cantidad: detalle.Cantidad,
                             Impreso: detalle.Impreso,
                             Descripcion: plato ? plato.Descripcion : `Plato ${detalle.PlatoID}`,
-                            Precio: plato ? plato.Precio : 0
+                            Precio: plato ? plato.Precio : 0,
+                            PrecioLlevar: plato ? (plato.PrecioLlevar ?? 0) : 0,
                         };
                     });
                 }
             }
 
-            const detallesMapeados = detallesConPlatos.map((d: any) => ({
-                DetalleID: d.DetalleID,
-                PlatoID: d.PlatoID,
-                descripcionPlato: d.Descripcion,
-                Cantidad: d.Cantidad,
-                PrecioUnitario: Number(d.Precio) || 0,
-                Impreso: !!d.Impreso
-            }));
+            const detallesMapeados = detallesConPlatos.map((d: any) => {
+                const precioNormal = Number(d.Precio) || 0;
+                const precioLlevar = Number(d.PrecioLlevar) || 0;
+                const esParaLlevar = pedidoData?.ParaLlevar === true;
+                const precioElegido = esParaLlevar ? (precioLlevar > 0 ? precioLlevar : precioNormal) : precioNormal;
+                return {
+                    DetalleID: d.DetalleID,
+                    PlatoID: d.PlatoID,
+                    descripcionPlato: d.Descripcion,
+                    Cantidad: d.Cantidad,
+                    PrecioUnitario: precioElegido,
+                    Impreso: !!d.Impreso
+                };
+            });
 
             setDetalles(detallesMapeados);
             setPedido({
@@ -153,7 +156,7 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                 }
             }
 
-            // Actualizar el pedido para obtener los cambios
+            // Actualizar el pedido para obtener los cambios y recalcular precios (incluyendo PrecioLlevar si aplica)
             await fetchPedido();
         } catch (error) {
             console.error(error);
@@ -621,7 +624,7 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                                                                         <div className="flex-1">
                                                                             <h3 className="font-semibold text-gray-800 mb-1">{detalle.descripcionPlato}</h3>
                                                                             <p className="text-sm text-gray-600">
-                                                                                S/. {detalle.PrecioUnitario.toFixed(2)} c/u
+                                                                                S/. {detalle.PrecioUnitario.toFixed(2)} c/u {pedido?.ParaLlevar ? '(Llevar)' : ''}
                                                                             </p>
                                                                         </div>
                                                                         <div className="text-right">
@@ -696,9 +699,9 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                                                                     <SelectValue placeholder="Seleccionar tipo de pago" />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
-                                                                    <SelectItem value="1">💵 Efectivo</SelectItem>
-                                                                    <SelectItem value="2">📱 Yape</SelectItem>
-                                                                    <SelectItem value="3">💳 POS</SelectItem>
+                                                                    <SelectItem value="1">Efectivo</SelectItem>
+                                                                    <SelectItem value="2">Yape</SelectItem>
+                                                                    <SelectItem value="3">POS</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
 
@@ -708,22 +711,60 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                                                                     <AlertDialogHeader>
                                                                         <AlertDialogTitle>Pago con Yape</AlertDialogTitle>
                                                                         <AlertDialogDescription>
-                                                                            Monto a cobrar: S/. {pedido?.total.toFixed(2)}
+                                                                            Escanea el código QR para realizar el pago
                                                                         </AlertDialogDescription>
                                                                     </AlertDialogHeader>
-                                                                    <div className="flex justify-center py-4">
-                                                                        <div className="bg-gray-100 p-4 rounded-lg">
-                                                                            <p className="text-center text-sm text-gray-600 mb-2">
-                                                                                Código QR para Yape
-                                                                            </p>
-                                                                            <div className="w-48 h-48 bg-white border-2 border-dashed border-gray-300 flex items-center justify-center">
-                                                                                <span className="text-gray-400">QR Code</span>
+                                                                    <div className="flex flex-col items-center justify-center py-4">
+                                                                        <div
+                                                                            className="relative cursor-pointer transform transition-transform hover:scale-105 group"
+                                                                            onClick={() => setIsImageModalOpen(true)}
+                                                                        >
+                                                                            <Image
+                                                                                src={YapeQR}
+                                                                                alt="QR Yape"
+                                                                                width={256}
+                                                                                height={256}
+                                                                                className="object-cover rounded-lg shadow-lg"
+                                                                                priority
+                                                                            />
+                                                                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                                                                <Maximize2 className="w-8 h-8 text-white" />
                                                                             </div>
                                                                         </div>
+                                                                        <p className="mt-4 text-center text-sm text-gray-500">
+                                                                            Monto a pagar: S/. {pedido?.total.toFixed(2)}
+                                                                        </p>
                                                                     </div>
+                                                                    {/* Modal para imagen ampliada */}
+                                                                    <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+                                                                        <DialogContent className="max-w-3xl w-[90vw] h-[90vh] p-0">
+                                                                            <div className="relative w-full h-full flex items-center justify-center bg-black/90">
+                                                                                <Image
+                                                                                    src={YapeQR}
+                                                                                    alt="QR Yape"
+                                                                                    width={512}
+                                                                                    height={512}
+                                                                                    className="object-contain max-h-[90vh] w-auto"
+                                                                                    priority
+                                                                                />
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    className="absolute top-2 right-2 text-white hover:bg-white/20"
+                                                                                    onClick={() => setIsImageModalOpen(false)}
+                                                                                >
+                                                                                    <X className="h-6 w-6" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        </DialogContent>
+                                                                    </Dialog>
                                                                     <AlertDialogFooter>
                                                                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                        <AlertDialogAction onClick={procesarPago}>
+                                                                        <AlertDialogAction
+                                                                            onClick={() => {
+                                                                                setIsYapeDialogOpen(false);
+                                                                                setIsConfirmDialogOpen(true);
+                                                                            }}
+                                                                        >
                                                                             Confirmar Pago
                                                                         </AlertDialogAction>
                                                                     </AlertDialogFooter>

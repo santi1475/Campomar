@@ -14,7 +14,7 @@ export async function GET(_req: Request, { params }: Segments) {
   try {
     const detalles = await prisma.detallepedidos.findMany({
       where: { PedidoID: pedidoId },
-      include: { platos: { select: { Descripcion: true, Precio: true, PlatoID: true } } },
+      include: { platos: { select: { Descripcion: true, Precio: true, PrecioLlevar: true, PlatoID: true } } },
       orderBy: { DetalleID: 'asc' }
     });
     return NextResponse.json(detalles.map(d => ({
@@ -23,7 +23,8 @@ export async function GET(_req: Request, { params }: Segments) {
       Cantidad: d.Cantidad,
       Impreso: d.Impreso,
       Descripcion: d.platos?.Descripcion ?? '',
-      Precio: d.platos?.Precio ?? 0
+      Precio: d.platos?.Precio ?? 0,
+      PrecioLlevar: d.platos?.PrecioLlevar ?? 0
     })));
   } catch (e) {
     console.error("Error listando detalles por pedido", e);
