@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
             platos: true, // Incluye los datos del plato
           },
         },
+        empleados: true, // Incluimos los datos del mozo que creó el pedido
       },
     });
 
@@ -56,6 +57,8 @@ export async function GET(req: NextRequest) {
 
     const resultado = {
       PedidoID: pedidoActivo.PedidoID,
+      EmpleadoID: pedidoActivo.EmpleadoID, // ID del mozo que creó el pedido
+      MozoNombre: pedidoActivo.empleados?.Nombre || null, // Nombre del mozo creador
       detalles,
       total,
       TipoPago: pedidoActivo.TipoPago ?? null,

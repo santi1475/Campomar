@@ -392,7 +392,9 @@ export const MesaOcupada = () => {
                         <span className="bg-gradient-to-r from-red-500 to-red-600 text-white text-xs sm:text-sm font-medium px-3 py-1.5 rounded-full w-fit shadow-sm">
                           Ocupado
                         </span>
-                        <div className="text-sm text-muted-foreground font-medium">Moz@: {empleado.Nombre}</div>
+                        <div className="text-sm text-muted-foreground font-medium">
+                          Moz@: {pedido?.MozoNombre || empleado.Nombre}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

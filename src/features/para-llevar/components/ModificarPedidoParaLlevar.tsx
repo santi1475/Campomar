@@ -410,7 +410,7 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                                                 <span className="bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs sm:text-sm font-medium px-3 py-1.5 rounded-full w-fit shadow-sm">
                                                     Para Llevar
                                                 </span>
-                                                <div className="text-sm text-muted-foreground font-medium">Moz@: {empleado?.Nombre}</div>
+                                                <div className="text-sm text-muted-foreground font-medium">Moz@: {pedido?.MozoNombre || empleado?.Nombre}</div>
                                             </div>
                                         </CardContent>
                                     </Card>

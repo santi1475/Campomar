@@ -15,6 +15,9 @@ export async function GET(request: Request, { params }: Segments) {
     where: {
       PedidoID: parseInt(id),
     },
+    include: {
+      empleados: true,
+    },
   });
 
   if (!pedido) {
@@ -24,7 +27,10 @@ export async function GET(request: Request, { params }: Segments) {
     );
   }
 
-  return NextResponse.json(pedido);
+  return NextResponse.json({
+    ...pedido,
+    MozoNombre: pedido.empleados?.Nombre || null,
+  });
 }
 
 const putSchema = yup.object({
