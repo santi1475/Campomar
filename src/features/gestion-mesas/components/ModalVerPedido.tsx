@@ -48,6 +48,7 @@ interface PedidoData {
   total: number
   TipoPago?: number | null
   Estado?: boolean
+  MozoNombre?: string | null
 }
 
 interface PedidosModalProps {
@@ -129,10 +130,10 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
       }
 
       // Éxito
-  // Refrescar datos localmente antes de cerrar para mejor UX
-  setPedidoData({ ...pedidoData, Estado: false, TipoPago: tipoPago })
-  handleOpenChange(false)
-  router.refresh()
+      // Refrescar datos localmente antes de cerrar para mejor UX
+      setPedidoData({ ...pedidoData, Estado: false, TipoPago: tipoPago })
+      handleOpenChange(false)
+      router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al pagar")
     } finally {
@@ -209,21 +210,28 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
 
         {pedidoData && !loading && !error && (
           <div className="space-y-6">
-            {/* Header del pedido */}
+            {/* Header del pedido en una sola línea */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Utensils className="h-5 w-5" />
-                    Pedido #{pedidoData.PedidoID}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-lg px-3 py-1">
-                      {pedidoData.detalles.length} plato{pedidoData.detalles.length !== 1 ? "s" : ""}
-                    </Badge>
-                    {pedidoData.Estado === false && (
-                      <Badge className="bg-green-600 hover:bg-green-600 text-white">Pagado</Badge>
-                    )}
+                <CardTitle>
+                  <div className="flex items-center justify-between w-full gap-4">
+                    <div className="flex items-center gap-6">
+                      <span className="flex items-center gap-2">
+                        <Utensils className="h-5 w-5" />
+                        <span className="font-bold text-xl">Pedido #{pedidoData.PedidoID}</span>
+                      </span>
+                      {pedidoData.MozoNombre && (
+                        <span className="font-semibold text-lg">Mesero: <span className="font-normal">{pedidoData.MozoNombre}</span></span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-lg px-3 py-1">
+                        {pedidoData.detalles.length} plato{pedidoData.detalles.length !== 1 ? "s" : ""}
+                      </Badge>
+                      {pedidoData.Estado === false && (
+                        <Badge className="bg-green-600 hover:bg-green-600 text-white">Pagado</Badge>
+                      )}
+                    </div>
                   </div>
                 </CardTitle>
               </CardHeader>
