@@ -11,7 +11,7 @@ export async function recalcularTotal(pedidoId: number, tx?: any) {
     select: { ParaLlevar: true },
   });
 
-  const esParaLlevar = pedido?.ParaLlevar === true;
+  const esPedidoParaLlevarCompleto = pedido?.ParaLlevar === true;
 
   const detalles = await prismaClient.detallepedidos.findMany({
     where: { PedidoID: pedidoId },
@@ -21,10 +21,13 @@ export async function recalcularTotal(pedidoId: number, tx?: any) {
   const cero = new Prisma.Decimal(0);
 
   const nuevoTotal = detalles.reduce((acc: Prisma.Decimal, detalle: any) => {
-    // Determinar precio a usar: si es para llevar y hay PrecioLlevar > 0 usarlo; sino Precio
+
     let precio: Prisma.Decimal = detalle.platos?.Precio || cero;
     const precioLlevar: Prisma.Decimal | null = detalle.platos?.PrecioLlevar ?? null;
-    if (esParaLlevar && precioLlevar && precioLlevar.greaterThan(cero)) {
+
+    const usarPrecioLlevar = (esPedidoParaLlevarCompleto || detalle.ParaLlevar) && precioLlevar && precioLlevar.greaterThan(cero);
+    
+    if (usarPrecioLlevar) {
       precio = precioLlevar;
     }
     const cantidad = new Prisma.Decimal(detalle.Cantidad);

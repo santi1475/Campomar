@@ -13,14 +13,15 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Plus, Search, Trash, X } from "lucide-react"
+import { Plus, Search, Trash, X, Package } from "lucide-react" // Importar 'Package'
 import type { platos } from "@prisma/client"
 import { ordenarPlatosPorCategoria } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal"
 
+// --- INICIO DE LA MODIFICACIÓN ---
 interface Props {
-  addPlatoToPedido: (platoId: number, cantidad: number) => Promise<void>
+  addPlatoToPedido: (platoId: number, cantidad: number, paraLlevar: boolean) => Promise<void> // Modificar firma
   onPedidoUpdated: () => Promise<void>
   pedido: {
     PedidoID: number
@@ -41,7 +42,9 @@ interface Props {
 
 interface PedidoItem extends platos {
   Cantidad: number
+  ParaLlevar?: boolean // Añadir campo opcional
 }
+// --- FIN DE LA MODIFICACIÓN ---
 
 export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }: Props) => {
   const [orderItems, setOrderItems] = useState<PedidoItem[]>([])
@@ -54,6 +57,9 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showMobileCart, setShowMobileCart] = useState(false)
   const [comentario, setComentario] = useState("")
+  // --- INICIO DE LA MODIFICACIÓN ---
+  const [itemsParaLlevar, setItemsParaLlevar] = useState<Set<number>>(new Set());
+  // --- FIN DE LA MODIFICACIÓN ---
 
   useEffect(() => {
     const fetchPlatos = async () => {
@@ -67,9 +73,9 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
         if (!response.ok) {
           throw new Error("Error al obtener los platos")
         }
-  const data = await response.json()
-  const ordenados = ordenarPlatosPorCategoria(data as platos[]) as platos[]
-  setPlatos(ordenados as any)
+        const data = await response.json()
+        const ordenados = ordenarPlatosPorCategoria(data as platos[]) as platos[]
+        setPlatos(ordenados as any)
       } catch (error) {
         console.error(error)
       } finally {
@@ -80,7 +86,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
   }, [])
 
   useEffect(() => {
-    // Filtrado por texto y categoría
     let filtered = platos.filter((plato) => plato.Descripcion!.toLowerCase().includes(searchTerm.toLowerCase()))
     filtered = filtered.filter((plato) => {
       if (filterCategory === "todos" || filterCategory === "") {
@@ -88,45 +93,67 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
       }
       return plato.CategoriaID === Number.parseInt(filterCategory)
     })
-    // Excluir platos ya agregados en el pedido actual
-    if (pedido && pedido.detalles) {
-      filtered = filtered.filter(
-        (plato) => !pedido.detalles.some((orderItem: any) => orderItem.PlatoID === plato.PlatoID)
-      )
-    }
+    // Mostrar todos los platos, sin filtrar los que ya están en el pedido
     setFilteredPlatos(filtered)
   }, [searchTerm, filterCategory, platos, pedido])
 
+  // --- INICIO DE LA MODIFICACIÓN ---
   const addToOrder = (plato: PedidoItem) => {
-    const existingItem = orderItems.find((orderItem) => orderItem.PlatoID === plato.PlatoID)
+    const esParaLlevar = itemsParaLlevar.has(plato.PlatoID);
+    const precioFinal = (esParaLlevar && plato.PrecioLlevar && Number(plato.PrecioLlevar) > 0) 
+      ? Number(plato.PrecioLlevar) 
+      : Number(plato.Precio);
+
+    const existingItem = orderItems.find((orderItem) => orderItem.PlatoID === plato.PlatoID && orderItem.ParaLlevar === esParaLlevar);
+
     if (existingItem) {
       setOrderItems(
         orderItems.map((orderItem: PedidoItem) =>
-          orderItem.PlatoID === plato.PlatoID ? { ...orderItem, Cantidad: orderItem.Cantidad + 1 } : orderItem,
+          orderItem.PlatoID === plato.PlatoID && orderItem.ParaLlevar === esParaLlevar
+            ? { ...orderItem, Cantidad: orderItem.Cantidad + 1 } 
+            : orderItem,
         ),
       )
     } else {
-      // Asegurar que la descripción esté correctamente establecida
       setOrderItems([...orderItems, { 
         ...plato, 
         Cantidad: 1,
-        Descripcion: plato.Descripcion || "Plato sin descripción"
+        Descripcion: plato.Descripcion || "Plato sin descripción",
+        Precio: precioFinal as any,
+        ParaLlevar: esParaLlevar,
       }])
     }
   }
+  // --- FIN DE LA MODIFICACIÓN ---
 
   const removeFromOrder = (plato: PedidoItem) => {
-    const existingItem = orderItems.find((orderItem) => orderItem.PlatoID === plato.PlatoID)
+    const existingItem = orderItems.find((orderItem) => orderItem.PlatoID === plato.PlatoID && orderItem.ParaLlevar === plato.ParaLlevar)
     if (existingItem && existingItem.Cantidad > 1) {
       setOrderItems(
         orderItems.map((orderItem) =>
-          orderItem.PlatoID === plato.PlatoID ? { ...orderItem, Cantidad: orderItem.Cantidad - 1 } : orderItem,
+          orderItem.PlatoID === plato.PlatoID && orderItem.ParaLlevar === plato.ParaLlevar
+            ? { ...orderItem, Cantidad: orderItem.Cantidad - 1 } 
+            : orderItem,
         ),
       )
     } else {
-      setOrderItems(orderItems.filter((orderItem) => orderItem.PlatoID !== plato.PlatoID))
+      setOrderItems(orderItems.filter((orderItem) => !(orderItem.PlatoID === plato.PlatoID && orderItem.ParaLlevar === plato.ParaLlevar)))
     }
   }
+
+  // --- INICIO DE LA MODIFICACIÓN ---
+  const handleToggleParaLlevar = (platoId: number) => {
+    setItemsParaLlevar(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(platoId)) {
+        newSet.delete(platoId);
+      } else {
+        newSet.add(platoId);
+      }
+      return newSet;
+    });
+  };
+  // --- FIN DE LA MODIFICACIÓN ---
 
   if (isLoading) {
     return (
@@ -198,22 +225,49 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
               <div className="flex-1 min-h-0 overflow-y-auto">
                 <div className="p-4 sm:p-6 pb-20 lg:pb-8">
                   <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
-                    {filteredPlatos.map((item) => (
-                      <Card
-                        key={item.PlatoID}
-                        className="cursor-pointer hover:shadow-md transition-all bg-white hover:bg-gray-50 active:scale-95 h-20 sm:h-24 border border-gray-200 flex-shrink-0"
-                        onClick={() => addToOrder(item)}
-                      >
-                        <CardContent className="p-2 sm:p-3 text-center h-full flex flex-col justify-center">
-                          <h3 className="font-medium text-gray-900 mb-1 text-xs sm:text-sm leading-tight line-clamp-2">
-                            {item.Descripcion}
-                          </h3>
-                          <p className="text-sm sm:text-base font-semibold text-blue-600">
-                            S/. {Number(item.Precio!).toFixed(2)}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
+                    {/* --- INICIO DE LA MODIFICACIÓN --- */}
+                    {filteredPlatos.map((item) => {
+                      const esParaLlevar = itemsParaLlevar.has(item.PlatoID);
+                      const precioFinal = (esParaLlevar && item.PrecioLlevar && Number(item.PrecioLlevar) > 0)
+                        ? Number(item.PrecioLlevar)
+                        : Number(item.Precio);
+
+                      return (
+                        <Card
+                          key={item.PlatoID}
+                          className="cursor-pointer hover:shadow-md transition-all bg-white hover:bg-gray-50 active:scale-95 border border-gray-200 flex-shrink-0 flex flex-col"
+                        >
+                          <CardContent 
+                            className="p-2 sm:p-3 text-center flex-1 flex flex-col justify-center"
+                            onClick={() => addToOrder(item)}
+                          >
+                            <h3 className="font-medium text-gray-900 mb-1 text-xs sm:text-sm leading-tight line-clamp-2 flex-1">
+                              {item.Descripcion}
+                            </h3>
+                            <p className="text-sm sm:text-base font-semibold text-blue-600">
+                              S/. {precioFinal.toFixed(2)}
+                            </p>
+                          </CardContent>
+                          <div 
+                            className={`p-2 border-t text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors ${esParaLlevar ? 'bg-orange-100 text-orange-700' : 'bg-gray-50 text-gray-600'}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleParaLlevar(item.PlatoID);
+                            }}
+                          >
+                            <Package className="w-3 h-3" />
+                            <span>Para Llevar</span>
+                            <input
+                              type="checkbox"
+                              checked={esParaLlevar}
+                              readOnly
+                              className="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                            />
+                          </div>
+                        </Card>
+                      );
+                    })}
+                    {/* --- FIN DE LA MODIFICACIÓN --- */}
                   </div>
                 </div>
               </div>
@@ -258,12 +312,14 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                   <div className="flex-1 min-h-0 overflow-y-auto">
                     <div className="p-4">
                       <div className="space-y-3">
+                        {/* --- INICIO DE LA MODIFICACIÓN --- */}
                         {orderItems.map((item) => (
-                          <div key={item.PlatoID} className="bg-gray-50 p-3 rounded-lg border">
+                          <div key={`${item.PlatoID}-${item.ParaLlevar}`} className="bg-gray-50 p-3 rounded-lg border">
                             <div className="flex justify-between items-start gap-3">
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-medium text-gray-900 leading-tight mb-1 text-sm">
                                   {item.Descripcion}
+                                  {item.ParaLlevar && <span className="text-orange-600 text-xs ml-1">(Para Llevar)</span>}
                                 </h4>
                                 <p className="text-xs text-gray-600">S/. {Number(item.Precio!).toFixed(2)} c/u</p>
                               </div>
@@ -288,6 +344,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                             </div>
                           </div>
                         ))}
+                        {/* --- FIN DE LA MODIFICACIÓN --- */}
                       </div>
                     </div>
                   </div>
@@ -308,7 +365,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                         <span className="text-xl font-bold text-blue-600">S/. {totalAmount}</span>
                       </div>
 
-                      {/* Sección de comentario */}
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Comentario para cocina (opcional)
@@ -330,15 +386,15 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                             if (!pedido) return;
                             try {
                               setIsSubmitting(true);
-                              // Guardar los platos nuevos en la base de datos
+                              // --- INICIO DE LA MODIFICACIÓN ---
                               for (const item of orderItems) {
-                                await addPlatoToPedido(item.PlatoID, item.Cantidad);
+                                await addPlatoToPedido(item.PlatoID, item.Cantidad, !!item.ParaLlevar);
                               }
-                              // Crear la comanda para impresión SOLO de los platos nuevos
+                              // --- FIN DE LA MODIFICACIÓN ---
                               const detallesParaComanda = orderItems.map(item => ({
                                 PlatoID: item.PlatoID,
                                 Cantidad: item.Cantidad,
-                                Descripcion: item.Descripcion || "Plato sin descripción"
+                                Descripcion: `${item.Descripcion || "Plato sin descripción"}${item.ParaLlevar ? ' (P/LLEVAR)' : ''}`
                               }));
 
                               console.log("🖨️ Creando comanda para nuevos platos (mobile):", detallesParaComanda);
@@ -366,7 +422,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                                 setShowMobileCart(false);
                                 setDialogOpen(false);
                                 
-                                // Mostrar mensaje de éxito
                                 alert(`¡Platos agregados! Comanda #${comandaData.ComandaID} enviada a cocina para imprimir solo los nuevos platos.`);
                               } else {
                                 const errorData = await comandaResponse.json();
@@ -409,12 +464,14 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                     <p className="text-gray-500 text-center py-8">No hay productos en el pedido</p>
                   ) : (
                     <div className="space-y-3">
+                      {/* --- INICIO DE LA MODIFICACIÓN --- */}
                       {orderItems.map((item) => (
-                        <div key={item.PlatoID} className="bg-gray-50 p-3 rounded-lg border">
+                        <div key={`${item.PlatoID}-${item.ParaLlevar}`} className="bg-gray-50 p-3 rounded-lg border">
                           <div className="flex justify-between items-start gap-3">
                             <div className="flex-1 min-w-0">
                               <h4 className="font-medium text-gray-900 leading-tight mb-1 text-sm">
                                 {item.Descripcion}
+                                {item.ParaLlevar && <span className="text-orange-600 text-xs ml-1">(Para Llevar)</span>}
                               </h4>
                               <p className="text-xs text-gray-600">S/. {Number(item.Precio!).toFixed(2)} c/u</p>
                             </div>
@@ -439,6 +496,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                           </div>
                         </div>
                       ))}
+                      {/* --- FIN DE LA MODIFICACIÓN --- */}
                     </div>
                   )}
                 </div>
@@ -461,7 +519,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                       <span className="text-xl font-bold text-blue-600">S/. {totalAmount}</span>
                     </div>
 
-                    {/* Sección de comentario */}
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Comentario para cocina (opcional)
@@ -483,15 +540,15 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                           if (!pedido) return;
                           try {
                             setIsSubmitting(true);
-                            // Guardar los platos nuevos en la base de datos
+                            // --- INICIO DE LA MODIFICACIÓN ---
                             for (const item of orderItems) {
-                              await addPlatoToPedido(item.PlatoID, item.Cantidad);
+                              await addPlatoToPedido(item.PlatoID, item.Cantidad, !!item.ParaLlevar);
                             }
-                            // Crear la comanda para impresión SOLO de los platos nuevos
+                            // --- FIN DE LA MODIFICACIÓN ---
                             const detallesParaComanda = orderItems.map(item => ({
                               PlatoID: item.PlatoID,
                               Cantidad: item.Cantidad,
-                              Descripcion: item.Descripcion || "Plato sin descripción"
+                              Descripcion: `${item.Descripcion || "Plato sin descripción"}${item.ParaLlevar ? ' (P/LLEVAR)' : ''}`
                             }));
 
                             console.log("🖨️ Creando comanda para nuevos platos:", detallesParaComanda);
@@ -518,7 +575,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                               setComentario("");
                               setDialogOpen(false);
                               
-                              // Mostrar mensaje de éxito
                               alert(`¡Platos agregados! Comanda #${comandaData.ComandaID} enviada a cocina para imprimir solo los nuevos platos.`);
                             } else {
                               const errorData = await comandaResponse.json();

@@ -40,6 +40,7 @@ interface DetallePedido {
   descripcionPlato: string
   Cantidad: number
   PrecioUnitario: number
+  ParaLlevar?: boolean // Agregado para indicar si es para llevar
 }
 
 interface PedidoData {
@@ -247,7 +248,12 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
                   <TableBody>
                     {pedidoData.detalles.map((detalle) => (
                       <TableRow key={detalle.DetalleID}>
-                        <TableCell className="font-medium">{detalle.descripcionPlato}</TableCell>
+                        <TableCell className="font-medium">
+                          {detalle.descripcionPlato}
+                          {detalle.ParaLlevar && (
+                            <Badge variant="outline" className="ml-2 bg-orange-100 text-orange-700 border-orange-200">Para Llevar</Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline">{detalle.Cantidad}</Badge>
                         </TableCell>

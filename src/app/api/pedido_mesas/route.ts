@@ -41,14 +41,23 @@ export async function GET(req: NextRequest) {
     }
 
     // Formateamos la respuesta como la aplicación la espera
-    const detalles = pedidoActivo.detallepedidos.map((detalle) => ({
-      DetalleID: detalle.DetalleID,
-      PlatoID: detalle.PlatoID,
-      descripcionPlato: detalle.platos?.Descripcion || "Plato no encontrado",
-      Cantidad: detalle.Cantidad,
-      PrecioUnitario: Number(detalle.platos?.Precio) || 0,
-      Impreso: detalle.Impreso,
-    }));
+    const detalles = pedidoActivo.detallepedidos.map((detalle) => {
+      const precioNormal = Number(detalle.platos?.Precio) || 0;
+      const precioLlevar = Number(detalle.platos?.PrecioLlevar) || 0;
+      
+      // Determina el precio correcto a usar para este item
+      const precioUnitario = (detalle.ParaLlevar && precioLlevar > 0) ? precioLlevar : precioNormal;
+
+      return {
+        DetalleID: detalle.DetalleID,
+        PlatoID: detalle.PlatoID,
+        descripcionPlato: detalle.platos?.Descripcion || "Plato no encontrado",
+        Cantidad: detalle.Cantidad,
+        PrecioUnitario: precioUnitario, // Precio correcto
+        Impreso: detalle.Impreso,
+        ParaLlevar: detalle.ParaLlevar, // Enviar el flag
+      };
+    });
 
     const total = detalles.reduce(
       (acc, detalle) => acc + detalle.Cantidad * detalle.PrecioUnitario,

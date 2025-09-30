@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useEmpleadoStore } from "@/store/empleado"
 import type { empleados, mesas } from "@prisma/client"
-import { X, PlusIcon, MinusIcon, Trash2, Printer, Check, ChevronDown, ChevronUp, Maximize2 } from "lucide-react"
+import { X, PlusIcon, MinusIcon, Trash2, Printer, Check, ChevronDown, ChevronUp, Maximize2, Package } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import YapeQR from "@/assets/OIP.jpg"
@@ -26,7 +26,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import ModalIncrementarPlatos from "./ModalIncrementarPlatos"
+import { Badge } from "@/components/ui/badge"
+import { Spinner } from "@/components/shared/ui/spinner"
 
 export const MesaOcupada = () => {
   const empleado: empleados = useEmpleadoStore((state: any) => state.empleado)
@@ -39,7 +40,6 @@ export const MesaOcupada = () => {
   const [error, setError] = useState<string | null>(null)
   const [tipoPago, setTipoPago] = useState<number | null>(null)
   const [isPlatosOpen, setIsPlatosOpen] = useState<boolean>(false)
-  const [isModalIncrementarOpen, setIsModalIncrementarOpen] = useState<boolean>(false)
 
   const fetchPedido = useCallback(async () => {
     setIsLoading(true)
@@ -78,50 +78,36 @@ export const MesaOcupada = () => {
     }
   }, [fetchPedido, mesasParam])
 
-  const calcularTotal = (detalles: any[]) => {
-    return detalles.reduce((acc: number, detalle: any) => acc + detalle.Cantidad * detalle.PrecioUnitario, 0)
-  }
-
-  const addPlatoToPedido = async (platoId: number, cantidad: number) => {
-    setIsLoading(true)
+  const addPlatoToPedido = async (platoId: number, cantidad: number, paraLlevar: boolean) => {
+    setIsLoading(true);
     try {
-      // Primero verificar si el plato ya existe en el pedido
-      const platoExistente = pedido?.detalles.find((detalle: any) => detalle.PlatoID === platoId)
+      const platoExistente = pedido?.detalles.find(
+        (detalle: any) => detalle.PlatoID === platoId && !!detalle.ParaLlevar === paraLlevar
+      );
 
       if (platoExistente) {
-        // Si existe, incrementar la cantidad
         const response = await fetch(`/api/detallepedidos/${platoExistente.DetalleID}`, {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             operacion: "incrementar",
-            cantidad: cantidad, // Incrementar por la cantidad especificada
+            cantidad: cantidad,
           }),
         })
-        if (!response.ok) {
-          throw new Error("Error al actualizar el plato en el pedido")
-        }
+        if (!response.ok) throw new Error("Error al actualizar el plato en el pedido")
       } else {
-        // Si no existe, crear nuevo detalle
         const response = await fetch(`/api/detallepedidos`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             PedidoID: pedido.PedidoID,
             PlatoID: platoId,
             Cantidad: cantidad,
+            ParaLlevar: paraLlevar,
           }),
         })
-        if (!response.ok) {
-          throw new Error("Error al agregar el plato al pedido")
-        }
+        if (!response.ok) throw new Error("Error al agregar el plato al pedido")
       }
-
-      // Actualizar el pedido para obtener los cambios
       await fetchPedido()
     } catch (error) {
       console.error(error)
@@ -131,46 +117,19 @@ export const MesaOcupada = () => {
     }
   }
 
-  const handleIncrementarCantidad = async (detalleId: number) => {
-    // Abrir modal de incrementar platos en lugar de incrementar directamente
-    setIsModalIncrementarOpen(true)
-  }
-
-  // Función original para incrementar (usada internamente por el modal)
   const handleIncrementarCantidadOriginal = async (detalleId: number) => {
     setIsLoading(true)
     try {
       const response = await fetch(`/api/detallepedidos/${detalleId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          operacion: "incrementar",
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operacion: "incrementar" }),
       })
-      if (!response.ok) {
-        throw new Error("Error al incrementar la cantidad del plato")
-      }
-      const data = await response.json()
-      setPedido((prevPedido: any) => {
-        const detallesActualizados = prevPedido.detalles.map((detalle: any) =>
-          detalle.DetalleID === detalleId
-            ? {
-              ...detalle,
-              Cantidad: detalle.Cantidad + 1,
-            }
-            : detalle,
-        )
-        return {
-          ...prevPedido,
-          detalles: detallesActualizados,
-          total: calcularTotal(detallesActualizados),
-        }
-      })
+      if (!response.ok) throw new Error("Error al incrementar la cantidad del plato")
+      await fetchPedido();
     } catch (error) {
       console.error(error)
-      setError("Error al incrementar la cantidad del plato. Inténtalo de nuevo más tarde.")
+      setError("Error al incrementar la cantidad del plato.")
     } finally {
       setIsLoading(false)
     }
@@ -181,29 +140,14 @@ export const MesaOcupada = () => {
     try {
       const response = await fetch(`/api/detallepedidos/${detalleId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          operacion: "decrementar",
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operacion: "decrementar" }),
       })
-      if (!response.ok) {
-        throw new Error("Error al decrementar la cantidad del plato")
-      }
-      setPedido((prevPedido: any) => {
-        const detallesActualizados = prevPedido.detalles.map((detalle: any) =>
-          detalle.DetalleID === detalleId ? { ...detalle, Cantidad: Math.max(detalle.Cantidad - 1, 1) } : detalle,
-        )
-        return {
-          ...prevPedido,
-          detalles: detallesActualizados,
-          total: calcularTotal(detallesActualizados),
-        }
-      })
+      if (!response.ok) throw new Error("Error al decrementar la cantidad del plato")
+      await fetchPedido();
     } catch (error) {
       console.error(error)
-      setError("Error al decrementar la cantidad del plato. Inténtalo de nuevo más tarde.")
+      setError("Error al decrementar la cantidad del plato.")
     } finally {
       setIsLoading(false)
     }
@@ -215,20 +159,11 @@ export const MesaOcupada = () => {
       const response = await fetch(`/api/detallepedidos/${detalleId}`, {
         method: "DELETE",
       })
-      if (!response.ok) {
-        throw new Error("Error al eliminar el plato del pedido")
-      }
-      setPedido((prevPedido: any) => {
-        const detallesActualizados = prevPedido.detalles.filter((detalle: any) => detalle.DetalleID !== detalleId)
-        return {
-          ...prevPedido,
-          detalles: detallesActualizados,
-          total: calcularTotal(detallesActualizados),
-        }
-      })
+      if (!response.ok) throw new Error("Error al eliminar el plato del pedido")
+      await fetchPedido();
     } catch (error) {
       console.error(error)
-      setError("Error al eliminar el plato del pedido. Inténtalo de nuevo más tarde.")
+      setError("Error al eliminar el plato del pedido.")
     } finally {
       setIsLoading(false)
     }
@@ -244,37 +179,31 @@ export const MesaOcupada = () => {
       const response = await fetch(`/api/pedidos/${pedido.PedidoID}`, {
         method: "DELETE",
       })
-      if (!response.ok) {
-        throw new Error("Error al eliminar el pedido")
-      }
+      if (!response.ok) throw new Error("Error al eliminar el pedido")
       setPedido(null)
       router.back()
     } catch (error) {
       console.error(error)
-      setError("Error al eliminar el pedido. Inténtalo de nuevo más tarde.")
+      setError("Error al eliminar el pedido.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Función para manejar incrementos desde el modal
   const handleIncrementarFromModal = async (detalleId: number, cantidad: number) => {
     for (let i = 0; i < cantidad; i++) {
       await handleIncrementarCantidadOriginal(detalleId)
     }
   }
 
-  // Función para imprimir comandas con los nuevos platos incrementados
   const handleImprimirNuevosIncrement = async (platosNuevos: any[], comentario: string) => {
     try {
-      // Crear comentario para la comanda con los platos incrementados
-      const platosTexto = platosNuevos.map(plato => 
+      const platosTexto = platosNuevos.map(plato =>
         `${plato.Cantidad}x ${plato.Descripcion}`
       ).join(", ")
-      
+
       const comentarioCompleto = `NUEVOS PLATOS - Solo: ${platosTexto}${comentario ? ` | ${comentario}` : ""}`
-      
-      // Enviar comanda a cocina
+
       const comandaResponse = await fetch("/api/comanda-cocina", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -289,10 +218,6 @@ export const MesaOcupada = () => {
         throw new Error(error.message || "Error al crear la comanda")
       }
 
-      const comanda = await comandaResponse.json()
-      console.log(`✅ Comanda ${comanda.ComandaID} creada para incrementos del pedido ${pedido.PedidoID}`)
-      
-      // Refrescar datos del pedido
       await fetchPedido()
     } catch (error) {
       console.error("Error al imprimir comanda de incrementos:", error)
@@ -309,9 +234,7 @@ export const MesaOcupada = () => {
     try {
       const response = await fetch(`/api/pedidos/${pedido.PedidoID}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...pedido,
           Estado: false,
@@ -319,13 +242,11 @@ export const MesaOcupada = () => {
           TipoPago: tipoPago,
         }),
       })
-      if (!response.ok) {
-        throw new Error("Error al pagar el pedido")
-      }
+      if (!response.ok) throw new Error("Error al pagar el pedido")
       router.push("/empleado/sala")
     } catch (error) {
       console.error(error)
-      setError("Error al pagar el pedido. Inténtalo de nuevo más tarde.")
+      setError("Error al pagar el pedido.")
     } finally {
       setIsLoading(false)
       setIsConfirmDialogOpen(false)
@@ -348,14 +269,10 @@ export const MesaOcupada = () => {
 
   const buttonColor = (() => {
     switch (tipoPago) {
-      case 1:
-        return "bg-[#00631b] hover:bg-[#00631b]/90"
-      case 2:
-        return "bg-[#931194] hover:bg-[#931194]/90"
-      case 3:
-        return "bg-[#f7762c] hover:bg-[#f7762c]/90"
-      default:
-        return ""
+      case 1: return "bg-[#00631b] hover:bg-[#00631b]/90"
+      case 2: return "bg-[#931194] hover:bg-[#931194]/90"
+      case 3: return "bg-[#f7762c] hover:bg-[#f7762c]/90"
+      default: return ""
     }
   })()
 
@@ -366,12 +283,7 @@ export const MesaOcupada = () => {
           <CardHeader className="bg-gradient-to-r from-brandSecondary to-brandSecondary/90 text-primary-foreground p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold">Modificar pedido</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white/20 md:hidden"
-                onClick={handleGoBack}
-              >
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 md:hidden" onClick={handleGoBack}>
                 ← Volver
               </Button>
             </div>
@@ -379,10 +291,8 @@ export const MesaOcupada = () => {
 
           <CardContent className="p-0">
             <div className="flex flex-col xl:flex-row">
-              {/* Sidebar - Información de mesa y controles */}
               <div className="w-full xl:w-1/3 p-4 sm:p-6 border-b xl:border-b-0 xl:border-r bg-gradient-to-b from-gray-50 to-white">
                 <div className="space-y-4 sm:space-y-6">
-                  {/* Información de la mesa */}
                   <Card className="shadow-md border-0 bg-white">
                     <CardContent className="p-4 sm:p-6">
                       <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold mb-3 sm:mb-4 text-gray-800">
@@ -393,28 +303,17 @@ export const MesaOcupada = () => {
                           Ocupado
                         </span>
                         <div className="text-sm text-muted-foreground font-medium">
-                          Moz@: {pedido?.MozoNombre || empleado.Nombre}
+                          Moz@: {pedido?.MozoNombre || (empleado && empleado.Nombre)}
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-
-                  {/* Controles */}
                   <div className="space-y-3 sm:space-y-4">
                     <MesaOcupadaAgregar
                       addPlatoToPedido={addPlatoToPedido}
                       pedido={pedido}
                       onPedidoUpdated={fetchPedido}
                     />
-
-                    <Button
-                      onClick={() => setIsModalIncrementarOpen(true)}
-                      disabled={!pedido || pedido.detalles.length === 0}
-                      className="w-full text-sm sm:text-base transition-all duration-300 ease-in-out transform hover:scale-105 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-md hover:shadow-lg"
-                    >
-                      <PlusIcon className="w-4 h-4 mr-2" /> Agregar Más Platos
-                    </Button>
-
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
@@ -428,21 +327,17 @@ export const MesaOcupada = () => {
                         <AlertDialogHeader>
                           <AlertDialogTitle>¿Cancelar pedido?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Esta acción eliminará el pedido y todos sus platos asociados. ¿Estás seguro que deseas
-                            continuar?
+                            Esta acción eliminará el pedido y todos sus platos asociados. ¿Estás seguro que deseas continuar?
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Volver</AlertDialogCancel>
                           <AlertDialogAction asChild>
-                            <Button variant="destructive" onClick={handleEliminarPedido}>
-                              Sí, cancelar pedido
-                            </Button>
+                            <Button variant="destructive" onClick={handleEliminarPedido}>Sí, cancelar pedido</Button>
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-
                     {pedido && (
                       <div className="flex flex-col gap-2">
                         <BoletaCocinaModal
@@ -455,9 +350,7 @@ export const MesaOcupada = () => {
                             Descripcion: detalle.descripcionPlato,
                             Cantidad: detalle.Cantidad,
                           }))}
-                          onPrintSuccess={() => {
-                            fetchPedido();
-                          }}
+                          onPrintSuccess={fetchPedido}
                           triggerButton={
                             <Button
                               className="w-full text-sm sm:text-base transition-all duration-300 ease-in-out transform hover:scale-105 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg"
@@ -469,7 +362,6 @@ export const MesaOcupada = () => {
                         />
                       </div>
                     )}
-
                     <Button
                       variant="link"
                       className="w-full text-brandSecondary hover:text-brandSecondary/80 transition-colors text-sm sm:text-base hidden md:block"
@@ -481,7 +373,6 @@ export const MesaOcupada = () => {
                 </div>
               </div>
 
-              {/* Contenido principal - Pedido */}
               <div className="w-full xl:w-2/3 p-4 sm:p-6 bg-white">
                 <div className="space-y-4 sm:space-y-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -509,7 +400,6 @@ export const MesaOcupada = () => {
                     </div>
                   ) : pedido ? (
                     <>
-                      {/* Tabla para pantallas medianas y grandes */}
                       <div className="hidden md:block overflow-x-auto">
                         <Card className="shadow-sm">
                           <Table>
@@ -524,23 +414,30 @@ export const MesaOcupada = () => {
                             </TableHeader>
                             <TableBody>
                               {pedido.detalles.map((detalle: any) => (
-                                <TableRow key={detalle.PlatoID} className="hover:bg-gray-50 transition-colors">
-                                  <TableCell className="font-medium">{detalle.descripcionPlato}</TableCell>
+                                <TableRow key={detalle.DetalleID} className="hover:bg-gray-50 transition-colors">
+                                  <TableCell className="font-medium">
+                                    {detalle.descripcionPlato}
+                                    {detalle.ParaLlevar && <Badge variant="outline" className="ml-2 bg-orange-100 text-orange-700 border-orange-200">Para Llevar</Badge>}
+                                  </TableCell>
                                   <TableCell className="font-semibold">{detalle.Cantidad}</TableCell>
                                   <TableCell>S/. {Number(detalle.PrecioUnitario).toFixed(2)}</TableCell>
                                   <TableCell className="font-semibold">
                                     S/. {(detalle.Cantidad * detalle.PrecioUnitario).toFixed(2)}
                                   </TableCell>
                                   <TableCell>
-                                    <div className="flex gap-1">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleDecrementarCantidad(detalle.DetalleID)}
-                                        className="p-2 hover:bg-gray-100 transition-colors"
-                                      >
-                                        <MinusIcon size={14} />
-                                      </Button>
+                                    <div className="flex gap-1 justify-end">
+                                      {/* --- AÑADIMOS ESTA CONDICIÓN --- */}
+                                      {detalle.Cantidad > 1 && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => handleDecrementarCantidad(detalle.DetalleID)}
+                                          className="p-2 hover:bg-gray-100 transition-colors"
+                                        >
+                                          <MinusIcon size={14} />
+                                        </Button>
+                                      )}
+                                      {/* El botón de eliminar se mantiene igual, siempre visible */}
                                       <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                           <Button
@@ -601,12 +498,13 @@ export const MesaOcupada = () => {
                           </CollapsibleTrigger>
                           <CollapsibleContent className="space-y-3 mt-3">
                             {pedido.detalles.map((detalle: any) => (
-                              <Card key={detalle.PlatoID} className="shadow-sm border-l-4 border-l-brandSecondary">
+                              <Card key={detalle.DetalleID} className="shadow-sm border-l-4 border-l-brandSecondary">
                                 <CardContent className="p-4">
                                   <div className="space-y-3">
                                     <div className="flex justify-between items-start">
                                       <h3 className="font-semibold text-sm leading-tight text-gray-800">
                                         {detalle.descripcionPlato}
+                                        {detalle.ParaLlevar && <Badge variant="outline" className="ml-1 bg-orange-100 text-orange-700 border-orange-200 text-xs">P/L</Badge>}
                                       </h3>
                                       <AlertDialog>
                                         <AlertDialogTrigger asChild>
@@ -655,14 +553,16 @@ export const MesaOcupada = () => {
                                     <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                                       <span className="text-sm font-medium text-gray-700">Cantidad:</span>
                                       <div className="flex items-center gap-3">
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => handleDecrementarCantidad(detalle.DetalleID)}
-                                          className="p-2 hover:bg-red-50 hover:border-red-200 transition-colors"
-                                        >
-                                          <MinusIcon size={14} />
-                                        </Button>
+                                        {detalle.Cantidad > 1 && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleDecrementarCantidad(detalle.DetalleID)}
+                                            className="p-2 hover:bg-red-50 hover:border-red-200 transition-colors"
+                                          >
+                                            <MinusIcon size={14} />
+                                          </Button>
+                                        )}
                                         <span className="font-bold text-lg min-w-[2.5rem] text-center bg-white px-3 py-1 rounded border">
                                           {detalle.Cantidad}
                                         </span>
@@ -676,7 +576,6 @@ export const MesaOcupada = () => {
                         </Collapsible>
                       </div>
 
-                      {/* Total y pago */}
                       <Card className="shadow-lg border-0 bg-gradient-to-r from-gray-50 to-white">
                         <CardContent className="p-4 sm:p-6">
                           <div className="space-y-4">
@@ -701,8 +600,6 @@ export const MesaOcupada = () => {
                                 </SelectContent>
                               </Select>
 
-                              {/* Diálogo para Yape */}
-                              {/* Diálogo para Yape */}
                               <AlertDialog open={isYapeDialogOpen} onOpenChange={setIsYapeDialogOpen}>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
@@ -732,8 +629,6 @@ export const MesaOcupada = () => {
                                       Monto a pagar: S/. {pedido?.total.toFixed(2)}
                                     </p>
                                   </div>
-
-                                  {/* Modal para imagen ampliada */}
                                   <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
                                     <DialogContent className="max-w-3xl w-[90vw] h-[90vh] p-0">
                                       <div className="relative w-full h-full flex items-center justify-center bg-black/90">
@@ -769,7 +664,6 @@ export const MesaOcupada = () => {
                                 </AlertDialogContent>
                               </AlertDialog>
 
-                              {/* Diálogo de confirmación final */}
                               <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
@@ -820,15 +714,6 @@ export const MesaOcupada = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Modal para incrementar platos */}
-      <ModalIncrementarPlatos
-        isOpen={isModalIncrementarOpen}
-        onClose={() => setIsModalIncrementarOpen(false)}
-        pedido={pedido}
-        onPlatoIncrement={handleIncrementarFromModal}
-        onImprimirNuevos={handleImprimirNuevosIncrement}
-      />
     </div>
   )
 }

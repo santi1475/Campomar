@@ -25,26 +25,44 @@ const postSchema = yup.object({
   PedidoID: yup.number().required(),
   PlatoID: yup.number().required(),
   Cantidad: yup.number().required(),
+  ParaLlevar: yup.boolean().default(false),
 });
 
 export async function POST(req: NextRequest, res: NextResponse) {
   try {
-    const { PedidoID, PlatoID, Cantidad } = await postSchema.validate(
+    const { PedidoID, PlatoID, Cantidad, ParaLlevar } = await postSchema.validate(
       await req.json()
     );
+
+    // Buscar el plato para obtener el precio correcto
+    const plato = await prisma.platos.findUnique({
+      where: { PlatoID },
+    });
+    if (!plato) {
+      return NextResponse.json({ message: "Plato no encontrado" }, { status: 404 });
+    }
+
+    const precioUnitario = ParaLlevar ? plato.PrecioLlevar : plato.Precio;
 
     const detallePedidos = await prisma.detallepedidos.create({
       data: {
         PedidoID,
         PlatoID,
         Cantidad,
+        ParaLlevar,
         Impreso: false, // Asegurar que los nuevos platos no estén marcados como impresos
       },
     });
 
     await recalcularTotal(PedidoID);
 
-    return NextResponse.json(detallePedidos);
+    // Agregar el precio calculado en la respuesta para el frontend
+    const detalleConPrecio = {
+      ...detallePedidos,
+      PrecioUnitario: precioUnitario,
+    };
+
+    return NextResponse.json(detalleConPrecio);
   } catch (error) {
     return NextResponse.json(error, { status: 400 });
   }
