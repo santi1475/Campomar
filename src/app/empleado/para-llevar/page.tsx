@@ -50,6 +50,8 @@ export default function ParaLlevarPage() {
     const [isConfirmOpen, setIsConfirmOpen] = useState(false)
     // Estados de impresión ahora sólo aplican al modo creación; reimpresiones se manejan dentro del componente de edición
     const [mostrarModalImpresion, setMostrarModalImpresion] = useState(false)
+        // Estado para el switch de depósito
+    const [clienteTraeDeposito, setClienteTraeDeposito] = useState(false)
 
     // Cargar platos
     useEffect(() => {
@@ -99,10 +101,14 @@ export default function ParaLlevarPage() {
 
     // --- Creación (sin pedidoId) ---
     // Si PrecioLlevar > 0, se toma como precio final override; si es 0 o null, se usa Precio base
+    // Si el cliente trae depósito, usar precio normal; si no, usar PrecioLlevar si existe
+    // Visualización de precios según el estado del checkbox
     const precioFinal = (p: Plato) => {
         const base = Number(p.Precio || 0);
         const llevar = Number(p.PrecioLlevar || 0);
-        return llevar > 0 ? llevar : base;
+        // Si el cliente trae depósito, mostrar precio normal
+        // Si no, mostrar precio de llevar si existe
+        return clienteTraeDeposito ? base : (llevar > 0 ? llevar : base);
     };
     const addToOrderLocal = (plato: Plato) => {
         const finalPrice = precioFinal(plato);
@@ -146,10 +152,16 @@ export default function ParaLlevarPage() {
             const PedidoID = pedido.PedidoID
             const creados: DetalleView[] = []
             for (const item of orderItems) {
+                // Calcular el precio correcto según el switch
+                const plato = platos.find(p => p.PlatoID === item.PlatoID);
+                let precio = Number(plato?.Precio || 0);
+                if (!clienteTraeDeposito && Number(plato?.PrecioLlevar) > 0) {
+                    precio = Number(plato?.PrecioLlevar);
+                }
                 const dResp = await fetch("/api/detallepedidos", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ PedidoID, PlatoID: item.PlatoID, Cantidad: item.Cantidad }),
+                    body: JSON.stringify({ PedidoID, PlatoID: item.PlatoID, Cantidad: item.Cantidad, PrecioUnitario: precio }),
                 })
                 if (dResp.ok) {
                     const det = await dResp.json()
@@ -158,7 +170,7 @@ export default function ParaLlevarPage() {
                             PlatoID: item.PlatoID,
                             descripcionPlato: item.descripcionPlato,
                             Cantidad: item.Cantidad,
-                            PrecioUnitario: item.PrecioUnitario,
+                            PrecioUnitario: precio,
                             Impreso: false,
                         })
                 }
@@ -184,8 +196,19 @@ export default function ParaLlevarPage() {
                 <h1 className="text-2xl font-bold">Pedido Para Llevar {isCreacion ? "(Nuevo)" : `#${pedidoId}`}</h1>
                 <div className="flex flex-wrap gap-2 items-center">
                     <Button variant="outline" onClick={() => router.push("/empleado/para-llevar/lista")}>Volver</Button>
+                    {/* Switch depósito al lado de Realizar pedido */}
                     {!pedidoId && (
-                        <div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <label htmlFor="switch-deposito-header" className="font-medium text-sm">Cliente trae depósito propio</label>
+                                <input
+                                    id="switch-deposito-header"
+                                    type="checkbox"
+                                    checked={clienteTraeDeposito}
+                                    onChange={e => setClienteTraeDeposito(e.target.checked)}
+                                    className="accent-blue-500 w-5 h-5"
+                                />
+                            </div>
                             <BoletaCocinaModal
                                 mode="crear"
                                 mesas={[{ NumeroMesa: 0 }]} // marcador PARA LLEVAR
@@ -234,7 +257,9 @@ export default function ParaLlevarPage() {
                                             <Card key={p.PlatoID} className="cursor-pointer hover:shadow-md bg-gray-100 hover:bg-gray-200 active:scale-95 h-28" onClick={() => addToOrderLocal(p)}>
                                                 <CardContent className="p-3 text-center h-full flex flex-col justify-center">
                                                     <h3 className="font-medium text-gray-900 mb-2 text-sm leading-tight line-clamp-2">{p.Descripcion}</h3>
-                                                    <p className="text-base font-semibold">S/. {finalP.toFixed(2)}</p>
+                                                    <p className="text-base font-semibold">
+                                                        S/. {finalP.toFixed(2)}
+                                                    </p>
                                                 </CardContent>
                                             </Card>
                                         );
@@ -257,7 +282,12 @@ export default function ParaLlevarPage() {
                                             <div className="grid grid-cols-2 gap-6">
                                                 <div>
                                                     <h4 className="font-medium leading-tight mb-1 text-sm">{item.descripcionPlato}</h4>
-                                                    <p className="text-xs text-gray-600">S/. {item.PrecioUnitario.toFixed(2)} c/u</p>
+                                                    <p className="text-xs text-gray-600">
+                                                        S/. {item.PrecioUnitario.toFixed(2)} c/u
+                                                        <span className="ml-1 text-[10px] text-gray-400 font-normal">
+                                                            {clienteTraeDeposito ? "(Precio normal)" : (item.PrecioUnitario > 0 && item.PrecioUnitario !== Number(platos.find(p => p.PlatoID === item.PlatoID)?.Precio) ? "(Para llevar)" : "(Precio normal)")}
+                                                        </span>
+                                                    </p>
                                                 </div>
                                                 <div className="flex flex-col items-end gap-2">
                                                     <div className="flex items-center gap-1">
@@ -274,6 +304,17 @@ export default function ParaLlevarPage() {
                                 </div>
                                 {orderItems.length > 0 && (
                                     <div className="border-t p-4 space-y-4">
+                                        {/* Switch para depósito */}
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <label htmlFor="switch-deposito" className="font-medium text-sm">Cliente con Taper</label>
+                                            <input
+                                                id="switch-deposito"
+                                                type="checkbox"
+                                                checked={clienteTraeDeposito}
+                                                onChange={e => setClienteTraeDeposito(e.target.checked)}
+                                                className="accent-blue-500 w-5 h-5"
+                                            />
+                                        </div>
                                         <div className="flex justify-between items-center">
                                             <span className="text-lg font-semibold">Total:</span>
                                             <span className="text-xl font-bold">S/. {total.toFixed(2)}</span>
@@ -342,6 +383,17 @@ export default function ParaLlevarPage() {
                                 ))}
                             </div>
                             <div className="pt-3 border-t mt-3 flex justify-between text-sm font-semibold">
+                                {/* Switch para depósito (mobile) */}
+                                <div className="flex items-center gap-2 mb-2">
+                                    <label htmlFor="switch-deposito-mobile" className="text-xs font-medium">Cliente trae depósito propio</label>
+                                    <input
+                                        id="switch-deposito-mobile"
+                                        type="checkbox"
+                                        checked={clienteTraeDeposito}
+                                        onChange={e => setClienteTraeDeposito(e.target.checked)}
+                                        className="accent-blue-500 w-4 h-4"
+                                    />
+                                </div>
                                 <span>Total:</span>
                                 <span>S/. {total.toFixed(2)}</span>
                             </div>

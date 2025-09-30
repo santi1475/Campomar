@@ -40,6 +40,16 @@ export default function BoletaCocinaModal({
 }: BoletaCocinaModalProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [comentario, setComentario] = useState(initialComentario || "")
+  // Detectar aclaración automática por depósito
+  let aclaracionDeposito = ""
+  if (typeof window !== "undefined") {
+    const switchDeposito = document.getElementById("switch-deposito-header") as HTMLInputElement | null
+    if (switchDeposito) {
+      aclaracionDeposito = switchDeposito.checked
+        ? "Cliente trae taper."
+        : "Incluye costo de taper.";
+    }
+  }
   const [isInstruccionModalOpen, setIsInstruccionModalOpen] = useState(false)
   const [isEditingInstruccion, setIsEditingInstruccion] = useState(false)
   const [showPreviewOnMobile, setShowPreviewOnMobile] = useState(false)
@@ -57,12 +67,17 @@ export default function BoletaCocinaModal({
         throw new Error("No se pudo crear el pedido.")
       }
 
+      // Adjuntar aclaración automática al comentario
+      const comentarioFinal = aclaracionDeposito
+        ? (comentario ? `${aclaracionDeposito} | ${comentario}` : aclaracionDeposito)
+        : comentario
+
       const comandaResponse = await fetch("/api/comanda-cocina", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           pedidoID,
-          comentario,
+          comentario: comentarioFinal,
         }),
       })
 
