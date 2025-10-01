@@ -400,12 +400,17 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                               console.log("🖨️ Creando comanda para nuevos platos (mobile):", detallesParaComanda);
                               console.log("📝 Comentario para nuevos platos (mobile):", comentario);
 
+                              // Si algún plato es ParaLlevar, anteponer 'Para Llevar' al comentario
+                              let comentarioFinal = comentario;
+                              if (orderItems.some(item => item.ParaLlevar)) {
+                                comentarioFinal = comentario ? `Para Llevar | ${comentario}` : "Para Llevar";
+                              }
                               const comandaResponse = await fetch("/api/comanda-cocina", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({
                                   pedidoID: pedido.PedidoID,
-                                  comentario: comentario,
+                                  comentario: comentarioFinal,
                                   detalles: detallesParaComanda
                                 }),
                               });

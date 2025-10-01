@@ -32,6 +32,15 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Mapear para incluir PrecioUnitario en cada detalle
+    const pedidosConPrecioUnitario = pedidos.map(p => ({
+      ...p,
+      detallepedidos: p.detallepedidos.map(d => ({
+        ...d,
+        PrecioUnitario: d.PrecioUnitario
+      }))
+    }));
+
     console.log(`[API pedidos-activos-para-llevar] ✅ Encontrados: ${pedidos.length}`);
     if (pedidos.length === 0) {
       // Intento de diagnóstico extra: contar totales para llevar sin filtrar estado
@@ -57,7 +66,7 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    return NextResponse.json({ count: pedidos.length, pedidos, generatedAt: marca, ...extra }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json({ count: pedidosConPrecioUnitario.length, pedidos: pedidosConPrecioUnitario, generatedAt: marca, ...extra }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error(`[API pedidos-activos-para-llevar] ❌ Error:`, error);
     return NextResponse.json({ error: "Error al obtener pedidos activos para llevar" }, { status: 500, headers: { 'Cache-Control': 'no-store' } });

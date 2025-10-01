@@ -27,6 +27,7 @@ interface DetalleView {
     descripcionPlato: string
     Cantidad: number
     PrecioUnitario: number
+    paraLlevar: boolean // Nuevo campo para consistencia
     Impreso?: boolean
 }
 
@@ -50,7 +51,7 @@ export default function ParaLlevarPage() {
     const [isConfirmOpen, setIsConfirmOpen] = useState(false)
     // Estados de impresión ahora sólo aplican al modo creación; reimpresiones se manejan dentro del componente de edición
     const [mostrarModalImpresion, setMostrarModalImpresion] = useState(false)
-        // Estado para el switch de depósito
+    // Estado para el switch de depósito
     const [clienteTraeDeposito, setClienteTraeDeposito] = useState(false)
 
     // Cargar platos
@@ -100,37 +101,34 @@ export default function ParaLlevarPage() {
     }, [pedidoQuery])
 
     // --- Creación (sin pedidoId) ---
-    // Si PrecioLlevar > 0, se toma como precio final override; si es 0 o null, se usa Precio base
-    // Si el cliente trae depósito, usar precio normal; si no, usar PrecioLlevar si existe
-    // Visualización de precios según el estado del checkbox
-    const precioFinal = (p: Plato) => {
+    const precioFinal = (p: Plato, paraLlevar: boolean) => {
         const base = Number(p.Precio || 0);
         const llevar = Number(p.PrecioLlevar || 0);
-        // Si el cliente trae depósito, mostrar precio normal
-        // Si no, mostrar precio de llevar si existe
-        return clienteTraeDeposito ? base : (llevar > 0 ? llevar : base);
+        return paraLlevar ? (llevar > 0 ? llevar : base) : base;
     };
     const addToOrderLocal = (plato: Plato) => {
-        const finalPrice = precioFinal(plato);
-        const existing = orderItems.find((i) => i.PlatoID === plato.PlatoID);
+        // Determinar si el plato se agrega como para llevar o normal según el estado actual del checkbox
+        const paraLlevar = !clienteTraeDeposito;
+        const finalPrice = precioFinal(plato, paraLlevar);
+        const existing = orderItems.find((i) => i.PlatoID === plato.PlatoID && i.paraLlevar === paraLlevar);
         if (existing) {
-            setOrderItems(orderItems.map((i) => (i.PlatoID === plato.PlatoID ? { ...i, Cantidad: i.Cantidad + 1 } : i)));
+            setOrderItems(orderItems.map((i) => (i.PlatoID === plato.PlatoID && i.paraLlevar === paraLlevar ? { ...i, Cantidad: i.Cantidad + 1 } : i)));
         } else {
             setOrderItems([
                 ...orderItems,
-                { PlatoID: plato.PlatoID, descripcionPlato: plato.Descripcion, Cantidad: 1, PrecioUnitario: finalPrice },
+                { PlatoID: plato.PlatoID, descripcionPlato: plato.Descripcion, Cantidad: 1, PrecioUnitario: finalPrice, paraLlevar },
             ]);
         }
     };
     const increaseLocal = (pl: DetalleView) =>
-        setOrderItems(orderItems.map((i) => (i.PlatoID === pl.PlatoID ? { ...i, Cantidad: i.Cantidad + 1 } : i)))
+        setOrderItems(orderItems.map((i) => (i.PlatoID === pl.PlatoID && i.paraLlevar === pl.paraLlevar ? { ...i, Cantidad: i.Cantidad + 1 } : i)))
     const decreaseLocal = (pl: DetalleView) => {
-        const ex = orderItems.find((i) => i.PlatoID === pl.PlatoID)
+        const ex = orderItems.find((i) => i.PlatoID === pl.PlatoID && i.paraLlevar === pl.paraLlevar)
         if (ex && ex.Cantidad > 1)
-            setOrderItems(orderItems.map((i) => (i.PlatoID === pl.PlatoID ? { ...i, Cantidad: i.Cantidad - 1 } : i)))
-        else setOrderItems(orderItems.filter((i) => i.PlatoID !== pl.PlatoID))
+            setOrderItems(orderItems.map((i) => (i.PlatoID === pl.PlatoID && i.paraLlevar === pl.paraLlevar ? { ...i, Cantidad: i.Cantidad - 1 } : i)))
+        else setOrderItems(orderItems.filter((i) => !(i.PlatoID === pl.PlatoID && i.paraLlevar === pl.paraLlevar)))
     }
-    const removeLocal = (pl: DetalleView) => setOrderItems(orderItems.filter((i) => i.PlatoID !== pl.PlatoID))
+    const removeLocal = (pl: DetalleView) => setOrderItems(orderItems.filter((i) => !(i.PlatoID === pl.PlatoID && i.paraLlevar === pl.paraLlevar)))
     const clearLocal = () => setOrderItems([])
 
     const totalLocal = orderItems.reduce((s, i) => s + i.Cantidad * i.PrecioUnitario, 0)
@@ -152,27 +150,31 @@ export default function ParaLlevarPage() {
             const PedidoID = pedido.PedidoID
             const creados: DetalleView[] = []
             for (const item of orderItems) {
-                // Calcular el precio correcto según el switch
+                // Calcular el precio correcto según el tipo guardado en el item
                 const plato = platos.find(p => p.PlatoID === item.PlatoID);
-                let precio = Number(plato?.Precio || 0);
-                if (!clienteTraeDeposito && Number(plato?.PrecioLlevar) > 0) {
-                    precio = Number(plato?.PrecioLlevar);
-                }
+                let precio = precioFinal(plato!, item.paraLlevar);
                 const dResp = await fetch("/api/detallepedidos", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ PedidoID, PlatoID: item.PlatoID, Cantidad: item.Cantidad, PrecioUnitario: precio }),
+                    body: JSON.stringify({
+                        PedidoID,
+                        PlatoID: item.PlatoID,
+                        Cantidad: item.Cantidad,
+                        ParaLlevar: item.paraLlevar,
+                        PrecioUnitario: item.PrecioUnitario // <--- Enviar el precio real
+                    }),
                 })
                 if (dResp.ok) {
                     const det = await dResp.json()
-                        ; (creados as any).push({
-                            DetalleID: det.DetalleID,
-                            PlatoID: item.PlatoID,
-                            descripcionPlato: item.descripcionPlato,
-                            Cantidad: item.Cantidad,
-                            PrecioUnitario: precio,
-                            Impreso: false,
-                        })
+                    ; (creados as any).push({
+                        DetalleID: det.DetalleID,
+                        PlatoID: item.PlatoID,
+                        descripcionPlato: item.descripcionPlato,
+                        Cantidad: item.Cantidad,
+                        PrecioUnitario: precio,
+                        paraLlevar: item.paraLlevar,
+                        Impreso: false,
+                    })
                 }
             }
             setPedidoId(PedidoID)
@@ -252,7 +254,7 @@ export default function ParaLlevarPage() {
                             <div className="border-2 border-blue-400 rounded-lg p-6 bg-white flex-1">
                                 <div className="grid grid-cols-3 gap-4 h-full overflow-y-auto scrollbar-thin">
                                     {filteredPlatos.map(p => {
-                                        const finalP = precioFinal(p);
+                                        const finalP = precioFinal(p, !clienteTraeDeposito);
                                         return (
                                             <Card key={p.PlatoID} className="cursor-pointer hover:shadow-md bg-gray-100 hover:bg-gray-200 active:scale-95 h-28" onClick={() => addToOrderLocal(p)}>
                                                 <CardContent className="p-3 text-center h-full flex flex-col justify-center">
@@ -278,14 +280,14 @@ export default function ParaLlevarPage() {
                                 </div>
                                 <div className="flex-1 p-4 overflow-y-auto space-y-2">
                                     {orderItems.length === 0 ? <p className="text-sm text-center text-gray-500">Sin platos.</p> : orderItems.map(item => (
-                                        <div key={item.PlatoID} className="bg-gray-50 p-3 rounded-lg">
+                                        <div key={item.PlatoID + '-' + item.paraLlevar} className="bg-gray-50 p-3 rounded-lg">
                                             <div className="grid grid-cols-2 gap-6">
                                                 <div>
-                                                    <h4 className="font-medium leading-tight mb-1 text-sm">{item.descripcionPlato}</h4>
+                                                    <h4 className="font-medium leading-tight mb-1 text-sm">{item.descripcionPlato} {item.paraLlevar && <span className="text-orange-600 text-xs ml-1">(Para Llevar)</span>}</h4>
                                                     <p className="text-xs text-gray-600">
                                                         S/. {item.PrecioUnitario.toFixed(2)} c/u
                                                         <span className="ml-1 text-[10px] text-gray-400 font-normal">
-                                                            {clienteTraeDeposito ? "(Precio normal)" : (item.PrecioUnitario > 0 && item.PrecioUnitario !== Number(platos.find(p => p.PlatoID === item.PlatoID)?.Precio) ? "(Para llevar)" : "(Precio normal)")}
+                                                            {item.paraLlevar ? "(Para llevar)" : "(Precio normal)"}
                                                         </span>
                                                     </p>
                                                 </div>
@@ -343,7 +345,7 @@ export default function ParaLlevarPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-3 max-h-[45vh] overflow-y-auto border rounded p-3 bg-white">
                                 {filteredPlatos.map(p => {
-                                    const finalP = precioFinal(p);
+                                    const finalP = precioFinal(p, !clienteTraeDeposito);
                                     return (
                                         <Card key={p.PlatoID} className="cursor-pointer bg-gray-100 hover:bg-gray-200 active:scale-95 h-24" onClick={() => addToOrderLocal(p)}>
                                             <CardContent className="p-2 flex flex-col justify-center text-center h-full">

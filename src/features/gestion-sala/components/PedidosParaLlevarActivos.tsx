@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Package, Clock, CheckCircle } from "lucide-react"
+import { useMemo } from "react"
 
 interface Pedido {
     PedidoID: number
@@ -14,10 +15,15 @@ interface Pedido {
         Cantidad: number
         platos: { Descripcion: string | null }
         Impreso: boolean
+        PrecioUnitario: number
     }>
 }
 
 export function PedidosParaLlevarActivos() {
+    const [platosDb, setPlatosDb] = useState<any[]>([]);
+    useEffect(() => {
+        fetch('/api/platos').then(r => r.ok ? r.json() : []).then(data => setPlatosDb(data));
+    }, []);
     const [pedidos, setPedidos] = useState<Pedido[]>([])
     const [loading, setLoading] = useState(false) // spinner fuerte (solo primera carga o manual)
     const [bgRefreshing, setBgRefreshing] = useState(false) // refresco silencioso
@@ -139,14 +145,28 @@ export function PedidosParaLlevarActivos() {
                                         </CardHeader>
                                         <CardContent className="space-y-3">
                                             <div className="space-y-1">
-                                                {p.detallepedidos.map((pl) => (
-                                                    <div key={pl.DetalleID} className="flex items-center justify-between text-sm">
-                                                        <span className="text-foreground">
-                                                            {pl.Cantidad}x {pl.platos?.Descripcion}
-                                                        </span>
-                                                        <span className="text-xs text-muted-foreground">{pl.Impreso ? "✓" : "⏳"}</span>
-                                                    </div>
-                                                ))}
+                                                {p.detallepedidos.map((pl) => {
+                                                    const platoDb = platosDb.find(pd => pd.Descripcion === pl.platos?.Descripcion);
+                                                    let sinTaper = false;
+                                                    if (
+                                                        platoDb &&
+                                                        platoDb.PrecioLlevar !== undefined &&
+                                                        platoDb.PrecioLlevar > 0 &&
+                                                        pl.PrecioUnitario !== undefined &&
+                                                        Number(pl.PrecioUnitario) === Number(platoDb.Precio)
+                                                    ) {
+                                                        sinTaper = true;
+                                                    }
+                                                    return (
+                                                        <div key={pl.DetalleID} className="flex items-center justify-between text-sm">
+                                                            <span className="text-foreground">
+                                                                {pl.Cantidad}x {pl.platos?.Descripcion}
+                                                                {sinTaper && <span className="ml-1 text-xs text-orange-600">(Sin Taper)</span>}
+                                                            </span>
+                                                            <span className="text-xs text-muted-foreground">{pl.Impreso ? "✓" : "⏳"}</span>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                             <div className="flex justify-between items-center pt-2 border-t border-border">
                                                 <span className="text-xs text-muted-foreground">Total:</span>

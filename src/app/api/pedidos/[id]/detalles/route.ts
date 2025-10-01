@@ -24,7 +24,8 @@ export async function GET(_req: Request, { params }: Segments) {
       Impreso: d.Impreso,
       Descripcion: d.platos?.Descripcion ?? '',
       Precio: d.platos?.Precio ?? 0,
-      PrecioLlevar: d.platos?.PrecioLlevar ?? 0
+      PrecioLlevar: d.platos?.PrecioLlevar ?? 0,
+      PrecioUnitario: d.PrecioUnitario ?? 0
     })));
   } catch (e) {
     console.error("Error listando detalles por pedido", e);

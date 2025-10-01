@@ -79,6 +79,7 @@ model detallepedidos {
   Activo    Boolean? @default(true)
   Impreso   Boolean  @default(false)
   ParaLlevar Boolean  @default(false)
+  PrecioUnitario Decimal  @db.Decimal(10, 2)
   pedidos   pedidos  @relation(fields: [PedidoID], references: [PedidoID], onDelete: NoAction, onUpdate: NoAction)
   platos    platos   @relation(fields: [PlatoID], references: [PlatoID], onDelete: NoAction, onUpdate: NoAction)
 }

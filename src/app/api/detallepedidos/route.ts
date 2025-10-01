@@ -26,23 +26,28 @@ const postSchema = yup.object({
   PlatoID: yup.number().required(),
   Cantidad: yup.number().required(),
   ParaLlevar: yup.boolean().default(false),
+  PrecioUnitario: yup.number().optional(),
 });
 
 export async function POST(req: NextRequest, res: NextResponse) {
   try {
-    const { PedidoID, PlatoID, Cantidad, ParaLlevar } = await postSchema.validate(
+    const { PedidoID, PlatoID, Cantidad, ParaLlevar, PrecioUnitario } = await postSchema.validate(
       await req.json()
     );
 
-    // Buscar el plato para obtener el precio correcto
-    const plato = await prisma.platos.findUnique({
-      where: { PlatoID },
-    });
-    if (!plato) {
-      return NextResponse.json({ message: "Plato no encontrado" }, { status: 404 });
+    // Buscar el plato para obtener el precio correcto si no se envía
+    let precioFinal = PrecioUnitario;
+    if (typeof precioFinal !== "number" || isNaN(precioFinal)) {
+      const plato = await prisma.platos.findUnique({
+        where: { PlatoID },
+      });
+      if (!plato) {
+        return NextResponse.json({ message: "Plato no encontrado" }, { status: 404 });
+      }
+  const precioLlevar = plato.PrecioLlevar !== null ? Number(plato.PrecioLlevar) : 0;
+  const precioBase = plato.Precio !== null ? Number(plato.Precio) : 0;
+  precioFinal = ParaLlevar ? precioLlevar : precioBase;
     }
-
-    const precioUnitario = ParaLlevar ? plato.PrecioLlevar : plato.Precio;
 
     const detallePedidos = await prisma.detallepedidos.create({
       data: {
@@ -50,19 +55,14 @@ export async function POST(req: NextRequest, res: NextResponse) {
         PlatoID,
         Cantidad,
         ParaLlevar,
+        PrecioUnitario: precioFinal,
         Impreso: false, // Asegurar que los nuevos platos no estén marcados como impresos
       },
     });
 
     await recalcularTotal(PedidoID);
 
-    // Agregar el precio calculado en la respuesta para el frontend
-    const detalleConPrecio = {
-      ...detallePedidos,
-      PrecioUnitario: precioUnitario,
-    };
-
-    return NextResponse.json(detalleConPrecio);
+    return NextResponse.json(detallePedidos);
   } catch (error) {
     return NextResponse.json(error, { status: 400 });
   }

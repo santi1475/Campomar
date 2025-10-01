@@ -13,7 +13,7 @@ import Image from "next/image";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { MesaOcupadaAgregar } from "@/features/pedidos-activos/components/ModalAgregarPlato";
+import AgregarPlatosParaLlevar from "@/features/para-llevar/components/AgregarPlatosParaLlevar";
 import ModalIncrementarPlatos from "@/features/pedidos-activos/components/ModalIncrementarPlatos";
 import YapeQR from "@/assets/OIP.jpg"
 
@@ -38,6 +38,14 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
     const [isImageModalOpen, setIsImageModalOpen] = useState(false);
     const [isModalIncrementarOpen, setIsModalIncrementarOpen] = useState(false);
+    const [platos, setPlatos] = useState<{ PlatoID: number; Descripcion: string; Precio: number; PrecioLlevar?: number; CategoriaID: number }[]>([]);
+
+    useEffect(() => {
+        // Cargar platos al montar el componente
+        fetch('/api/platos')
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setPlatos(data));
+    }, []);
 
     const fetchPedido = useCallback(async () => {
         setIsLoading(true);
@@ -82,16 +90,12 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
             }
 
             const detallesMapeados = detallesConPlatos.map((d: any) => {
-                const precioNormal = Number(d.Precio) || 0;
-                const precioLlevar = Number(d.PrecioLlevar) || 0;
-                const esParaLlevar = pedidoData?.ParaLlevar === true;
-                const precioElegido = esParaLlevar ? (precioLlevar > 0 ? precioLlevar : precioNormal) : precioNormal;
                 return {
                     DetalleID: d.DetalleID,
                     PlatoID: d.PlatoID,
                     descripcionPlato: d.Descripcion,
                     Cantidad: d.Cantidad,
-                    PrecioUnitario: precioElegido,
+                    PrecioUnitario: Number(d.PrecioUnitario), // Usar el precio guardado
                     Impreso: !!d.Impreso
                 };
             });
@@ -417,10 +421,27 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
 
                                     {/* Controles */}
                                     <div className="space-y-3 sm:space-y-4">
-                                        <MesaOcupadaAgregar
-                                            addPlatoToPedido={addPlatoToPedido}
-                                            pedido={pedido}
-                                            onPedidoUpdated={fetchPedido}
+                                        <AgregarPlatosParaLlevar
+                                            pedidoId={pedidoId}
+                                            detalles={pedido?.detalles || []}
+                                            tipoPedido="ParaLlevar"
+                                            onAddPlatos={async (items, comentario) => {
+                                                for (const item of items) {
+                                                    await fetch('/api/detallepedidos', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            PedidoID: pedidoId,
+                                                            PlatoID: item.PlatoID,
+                                                            Cantidad: item.Cantidad,
+                                                            Descripcion: item.Descripcion,
+                                                            ParaLlevar: item.ParaLlevar,
+                                                            PrecioUnitario: item.PrecioUnitario
+                                                        })
+                                                    });
+                                                }
+                                                await fetchPedido();
+                                            }}
                                         />
 
                                         <Button
@@ -543,7 +564,16 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                                                                 <TableRow key={detalle.DetalleID} className="hover:bg-gray-50 transition-colors">
                                                                     <TableCell className="font-medium">{detalle.descripcionPlato}</TableCell>
                                                                     <TableCell className="text-center">{detalle.Cantidad}</TableCell>
-                                                                    <TableCell>S/. {detalle.PrecioUnitario.toFixed(2)}</TableCell>
+                                                                    <TableCell>
+                                                                        S/. {detalle.PrecioUnitario.toFixed(2)}
+                                                                        {(() => {
+                                                                            const plato = platos.find(p => p.PlatoID === detalle.PlatoID);
+                                                                            if (plato && detalle.PrecioUnitario === Number(plato.Precio)) {
+                                                                                return <span className="ml-1 text-xs text-orange-600">(Sin Taper)</span>;
+                                                                            }
+                                                                            return null;
+                                                                        })()}
+                                                                    </TableCell>
                                                                     <TableCell className="font-semibold">
                                                                         S/. {(detalle.Cantidad * detalle.PrecioUnitario).toFixed(2)}
                                                                     </TableCell>
