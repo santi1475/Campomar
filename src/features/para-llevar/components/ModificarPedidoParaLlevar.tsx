@@ -4,17 +4,15 @@ import { useRouter } from "next/navigation";
 import { useEmpleadoStore } from "@/store/empleado";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ShoppingCart, Minus, Plus, Trash, Printer, X, Check, ChevronUp, ChevronDown, Maximize2 } from "lucide-react";
+import { Minus, Trash, Printer, X, Check, ChevronUp, ChevronDown, Maximize2 } from "lucide-react";
 import Image from "next/image";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import AgregarPlatosParaLlevar from "@/features/para-llevar/components/AgregarPlatosParaLlevar";
-import ModalIncrementarPlatos from "@/features/pedidos-activos/components/ModalIncrementarPlatos";
 import YapeQR from "@/assets/OIP.jpg"
 
 interface Plato { PlatoID: number; Descripcion: string; Precio: any; CategoriaID: number }
@@ -26,22 +24,16 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
     const router = useRouter();
     const empleado = useEmpleadoStore((s: any) => s.empleado);
     const [pedido, setPedido] = useState<any | null>(null);
-    const [detalles, setDetalles] = useState<DetalleView[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [tipoPago, setTipoPago] = useState<number | null>(null);
-    const [platosNuevos, setPlatosNuevos] = useState<DetalleView[]>([]);
-    const [mostrarModalImpresion, setMostrarModalImpresion] = useState(false);
-    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [isPlatosOpen, setIsPlatosOpen] = useState<boolean>(false);
     const [isYapeDialogOpen, setIsYapeDialogOpen] = useState(false);
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
     const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-    const [isModalIncrementarOpen, setIsModalIncrementarOpen] = useState(false);
     const [platos, setPlatos] = useState<{ PlatoID: number; Descripcion: string; Precio: number; PrecioLlevar?: number; CategoriaID: number }[]>([]);
 
     useEffect(() => {
-        // Cargar platos al montar el componente
         fetch('/api/platos')
             .then(r => r.ok ? r.json() : [])
             .then(data => setPlatos(data));
@@ -100,7 +92,6 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                 };
             });
 
-            setDetalles(detallesMapeados);
             setPedido({
                 ...pedidoData,
                 detalles: detallesMapeados,
@@ -119,142 +110,6 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
 
     const calcularTotal = (detalles: any[]) => {
         return detalles.reduce((acc: number, detalle: any) => acc + detalle.Cantidad * detalle.PrecioUnitario, 0);
-    };
-
-    const addPlatoToPedido = async (platoId: number, cantidad: number) => {
-        setIsLoading(true);
-        try {
-            // Primero verificar si el plato ya existe en el pedido
-            const platoExistente = pedido?.detalles.find((detalle: any) => detalle.PlatoID === platoId);
-
-            if (platoExistente) {
-                // Si existe, incrementar la cantidad
-                const response = await fetch(`/api/detallepedidos/${platoExistente.DetalleID}`, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        operacion: "incrementar",
-                        cantidad: cantidad, // Incrementar por la cantidad especificada
-                    }),
-                });
-                if (!response.ok) {
-                    throw new Error("Error al actualizar el plato en el pedido");
-                }
-            } else {
-                // Si no existe, crear nuevo detalle
-                const response = await fetch(`/api/detallepedidos`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        PedidoID: pedidoId,
-                        PlatoID: platoId,
-                        Cantidad: cantidad,
-                    }),
-                });
-                if (!response.ok) {
-                    throw new Error("Error al agregar el plato al pedido");
-                }
-            }
-
-            // Actualizar el pedido para obtener los cambios y recalcular precios (incluyendo PrecioLlevar si aplica)
-            await fetchPedido();
-        } catch (error) {
-            console.error(error);
-            setError("Error al agregar el plato al pedido. Inténtalo de nuevo más tarde.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleIncrementarCantidad = async (detalleId: number) => {
-        // Abrir modal de incrementar platos en lugar de incrementar directamente
-        setIsModalIncrementarOpen(true);
-    };
-
-    // Función original para incrementar (usada internamente por el modal)
-    const handleIncrementarCantidadOriginal = async (detalleId: number) => {
-        setIsLoading(true);
-        try {
-            const response = await fetch(`/api/detallepedidos/${detalleId}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    operacion: "incrementar",
-                }),
-            });
-            if (!response.ok) {
-                throw new Error("Error al incrementar la cantidad del plato");
-            }
-            setPedido((prevPedido: any) => {
-                const detallesActualizados = prevPedido.detalles.map((detalle: any) =>
-                    detalle.DetalleID === detalleId
-                        ? {
-                            ...detalle,
-                            Cantidad: detalle.Cantidad + 1,
-                        }
-                        : detalle,
-                );
-                return {
-                    ...prevPedido,
-                    detalles: detallesActualizados,
-                    total: calcularTotal(detallesActualizados),
-                };
-            });
-        } catch (error) {
-            console.error(error);
-            setError("Error al incrementar la cantidad del plato. Inténtalo de nuevo más tarde.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Función para manejar incrementos desde el modal
-    const handleIncrementarFromModal = async (detalleId: number, cantidad: number) => {
-        for (let i = 0; i < cantidad; i++) {
-            await handleIncrementarCantidadOriginal(detalleId);
-        }
-    };
-
-    // Función para imprimir comandas con los nuevos platos incrementados
-    const handleImprimirNuevosIncrement = async (platosNuevos: any[], comentario: string) => {
-        try {
-            // Crear comentario para la comanda con los platos incrementados
-            const platosTexto = platosNuevos.map(plato => 
-                `${plato.Cantidad}x ${plato.Descripcion}`
-            ).join(", ");
-            
-            const comentarioCompleto = `NUEVOS PLATOS - Solo: ${platosTexto}${comentario ? ` | ${comentario}` : ""}`;
-            
-            // Enviar comanda a cocina
-            const comandaResponse = await fetch("/api/comanda-cocina", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    pedidoID: pedidoId,
-                    comentario: comentarioCompleto,
-                }),
-            });
-
-            if (!comandaResponse.ok) {
-                const error = await comandaResponse.json();
-                throw new Error(error.message || "Error al crear la comanda");
-            }
-
-            const comanda = await comandaResponse.json();
-            console.log(`✅ Comanda ${comanda.ComandaID} creada para incrementos del pedido ${pedidoId}`);
-            
-            // Refrescar datos del pedido
-            await fetchPedido();
-        } catch (error) {
-            console.error("Error al imprimir comanda de incrementos:", error);
-            throw error;
-        }
     };
 
     const handleDecrementarCantidad = async (detalleId: number) => {
@@ -443,14 +298,6 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                                                 await fetchPedido();
                                             }}
                                         />
-
-                                        <Button
-                                            onClick={() => setIsModalIncrementarOpen(true)}
-                                            disabled={!pedido || pedido.detalles.length === 0}
-                                            className="w-full text-sm sm:text-base transition-all duration-300 ease-in-out transform hover:scale-105 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-md hover:shadow-lg"
-                                        >
-                                            <Plus className="w-4 h-4 mr-2" /> Agregar Más Platos
-                                        </Button>
 
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
@@ -847,15 +694,6 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                     </CardContent>
                 </Card>
             </div>
-
-            {/* Modal para incrementar platos */}
-            <ModalIncrementarPlatos
-                isOpen={isModalIncrementarOpen}
-                onClose={() => setIsModalIncrementarOpen(false)}
-                pedido={pedido}
-                onPlatoIncrement={handleIncrementarFromModal}
-                onImprimirNuevos={handleImprimirNuevosIncrement}
-            />
         </div>
     );
 }

@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { Plus, Search, Trash } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -43,7 +45,7 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
     const [draft, setDraft] = useState<
         { PlatoID: number; Descripcion: string; Precio: number; Cantidad: number; ParaLlevar: boolean }[]
     >([])
-    const [itemsParaLlevar, setItemsParaLlevar] = useState<Set<number>>(new Set())
+    const [modoParaLlevar, setModoParaLlevar] = useState(true)
     const [comentario, setComentario] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -87,9 +89,9 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
 
     // Agregar plato al draft
     const add = (pl: any) => {
-        const esParaLlevar = itemsParaLlevar.has(pl.PlatoID)
+        const esParaLlevar = modoParaLlevar
         const precio =
-            esParaLlevar && pl.PrecioLlevar && Number(pl.PrecioLlevar) > 0 ? Number(pl.PrecioLlevar) : Number(pl.Precio)
+            !esParaLlevar ? Number(pl.Precio) : (pl.PrecioLlevar && Number(pl.PrecioLlevar) > 0 ? Number(pl.PrecioLlevar) : Number(pl.Precio))
         setDraft((prev) => [
             ...prev,
             {
@@ -102,17 +104,11 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
         ])
     }
 
-    // Toggle para llevar por plato
-    const handleToggleParaLlevar = (platoId: number) => {
-        setItemsParaLlevar((prev) => {
-            const newSet = new Set(prev)
-            if (newSet.has(platoId)) {
-                newSet.delete(platoId)
-            } else {
-                newSet.add(platoId)
-            }
-            return newSet
-        })
+    // Toggle modo para llevar global
+    const handleToggleModoParaLlevar = () => {
+        setModoParaLlevar(!modoParaLlevar)
+        // Limpiar el draft cuando cambie el modo para evitar confusiones
+        setDraft([])
     }
 
     // Incrementar cantidad
@@ -132,14 +128,25 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
         if (!draft.length || !pedidoId) return
         setIsSubmitting(true)
         try {
-            // Detectar si hay algún plato con precio normal
-            const tieneTaper = draft.some(d => {
+            // Determinar el tipo de productos agregados en pedido para llevar
+            const platosConTaper = draft.filter(d => {
                 const plato = platos.find(p => p.PlatoID === d.PlatoID);
-                return plato && d.Precio === Number(plato.Precio);
+                return plato && d.Precio === Number(plato.Precio) && !d.ParaLlevar; // Precio normal, sin taper
             });
+            const platosSinTaper = draft.filter(d => d.ParaLlevar); // Precio para llevar
+            
             let comentarioFinal = comentario;
-            if (tieneTaper) {
-                comentarioFinal = comentario ? `${comentario} | Cliente tiene Taper` : "Cliente tiene Taper";
+            // AGREGADOS PARA LLEVAR - Caso B: Solo platos con precio normal (cliente tiene taper)
+            if (platosConTaper.length > 0 && platosSinTaper.length === 0) {
+                comentarioFinal = comentario ? `MODAL_LLEVAR_CON_TAPER | ${comentario}` : "MODAL_LLEVAR_CON_TAPER";
+            }
+            // AGREGADOS PARA LLEVAR - Caso A: Solo platos con precio para llevar
+            else if (platosSinTaper.length > 0 && platosConTaper.length === 0) {
+                comentarioFinal = comentario ? `MODAL_LLEVAR_SIN_TAPER | ${comentario}` : "MODAL_LLEVAR_SIN_TAPER";
+            }
+            // AGREGADOS PARA LLEVAR - Mixto: Platos con y sin taper
+            else if (platosConTaper.length > 0 && platosSinTaper.length > 0) {
+                comentarioFinal = comentario ? `MODAL_LLEVAR_MIXTO | ${comentario}` : "MODAL_LLEVAR_MIXTO";
             }
             await onAddPlatos(
                 draft.map((d) => ({
@@ -199,14 +206,29 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                                     <option value="4">Caldo</option>
                                 </select>
                             </div>
+                            <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                                <div className="flex items-center gap-3">
+                                    <Label htmlFor="modo-para-llevar" className="text-sm font-medium">
+                                        Modo Para Llevar
+                                    </Label>
+                                    <span className="text-xs text-gray-500">
+                                        {modoParaLlevar ? "Precios Para Llevar" : "Precios sin Taper"}
+                                    </span>
+                                </div>
+                                <Switch 
+                                    id="modo-para-llevar"
+                                    checked={modoParaLlevar}
+                                    onCheckedChange={handleToggleModoParaLlevar}
+                                />
+                            </div>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2 lg:p-3 grid gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 auto-rows-min">
                             {filtrados.map((pl) => {
-                                const esParaLlevar = itemsParaLlevar.has(pl.PlatoID)
+                                const esParaLlevar = modoParaLlevar
                                 const precioFinal =
-                                    esParaLlevar && pl.PrecioLlevar && Number(pl.PrecioLlevar) > 0
-                                        ? Number(pl.PrecioLlevar)
-                                        : Number(pl.Precio)
+                                    !esParaLlevar
+                                        ? Number(pl.Precio)
+                                        : (pl.PrecioLlevar && Number(pl.PrecioLlevar) > 0 ? Number(pl.PrecioLlevar) : Number(pl.Precio))
                                 return (
                                     <Card key={pl.PlatoID} className="cursor-pointer hover:shadow-md transition-shadow">
                                         <CardContent
@@ -216,26 +238,22 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                                             <span className="text-xs lg:text-sm font-medium line-clamp-2 break-words w-full min-h-[2.5rem] flex items-center justify-center">
                                                 {pl.Descripcion}
                                             </span>
-                                            <span className="text-sm lg:text-base font-semibold text-blue-600">
-                                                S/. {precioFinal.toFixed(2)}
-                                            </span>
-                                            <Plus className="w-4 h-4 text-gray-500" />
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span className="text-sm lg:text-base font-semibold text-blue-600">
+                                                    S/. {precioFinal.toFixed(2)}
+                                                </span>
+                                                {!esParaLlevar ? (
+                                                    <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                                                        Sin Taper
+                                                    </span>
+                                                ) : esParaLlevar && pl.PrecioLlevar && Number(pl.PrecioLlevar) > 0 ? (
+                                                    <span className="text-[10px] text-orange-600 font-medium bg-orange-100 px-1.5 py-0.5 rounded">
+                                                        Con Taper
+                                                    </span>
+                                                ) : null}
+                                            </div>
                                         </CardContent>
-                                        <div
-                                            className={`p-1.5 lg:p-2 border-t text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors ${esParaLlevar ? "bg-orange-100 text-orange-700" : "bg-gray-50 text-gray-600"}`}
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                handleToggleParaLlevar(pl.PlatoID)
-                                            }}
-                                        >
-                                            <span className="text-[10px] lg:text-xs">Con Taper</span>
-                                            <input
-                                                type="checkbox"
-                                                checked={esParaLlevar}
-                                                readOnly
-                                                className="h-3 w-3 lg:h-4 lg:w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                                            />
-                                        </div>
+
                                     </Card>
                                 )
                             })}

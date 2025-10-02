@@ -17,6 +17,8 @@ import { Plus, Search, Trash, X, Package } from "lucide-react" // Importar 'Pack
 import type { platos } from "@prisma/client"
 import { ordenarPlatosPorCategoria } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal"
 
 // --- INICIO DE LA MODIFICACIÓN ---
@@ -58,7 +60,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
   const [showMobileCart, setShowMobileCart] = useState(false)
   const [comentario, setComentario] = useState("")
   // --- INICIO DE LA MODIFICACIÓN ---
-  const [itemsParaLlevar, setItemsParaLlevar] = useState<Set<number>>(new Set());
+  const [modoParaLlevar, setModoParaLlevar] = useState(false);
   // --- FIN DE LA MODIFICACIÓN ---
 
   useEffect(() => {
@@ -99,7 +101,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
 
   // --- INICIO DE LA MODIFICACIÓN ---
   const addToOrder = (plato: PedidoItem) => {
-    const esParaLlevar = itemsParaLlevar.has(plato.PlatoID);
+    const esParaLlevar = modoParaLlevar;
     const precioFinal = (esParaLlevar && plato.PrecioLlevar && Number(plato.PrecioLlevar) > 0) 
       ? Number(plato.PrecioLlevar) 
       : Number(plato.Precio);
@@ -142,16 +144,10 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
   }
 
   // --- INICIO DE LA MODIFICACIÓN ---
-  const handleToggleParaLlevar = (platoId: number) => {
-    setItemsParaLlevar(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(platoId)) {
-        newSet.delete(platoId);
-      } else {
-        newSet.add(platoId);
-      }
-      return newSet;
-    });
+  const handleToggleModoParaLlevar = () => {
+    setModoParaLlevar(!modoParaLlevar);
+    // Limpiar el carrito cuando cambie el modo para evitar confusiones
+    setOrderItems([]);
   };
   // --- FIN DE LA MODIFICACIÓN ---
 
@@ -220,6 +216,21 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="flex items-center justify-between p-3 bg-white rounded-lg border mt-3">
+                  <div className="flex items-center gap-3">
+                    <Label htmlFor="modo-para-llevar-modal" className="text-sm font-medium">
+                      Modo Para Llevar
+                    </Label>
+                    <span className="text-xs text-gray-500">
+                      {modoParaLlevar ? "Precios con Taper aplicados" : "Precios normales"}
+                    </span>
+                  </div>
+                  <Switch 
+                    id="modo-para-llevar-modal"
+                    checked={modoParaLlevar}
+                    onCheckedChange={handleToggleModoParaLlevar}
+                  />
+                </div>
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto">
@@ -227,7 +238,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                   <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
                     {/* --- INICIO DE LA MODIFICACIÓN --- */}
                     {filteredPlatos.map((item) => {
-                      const esParaLlevar = itemsParaLlevar.has(item.PlatoID);
+                      const esParaLlevar = modoParaLlevar;
                       const precioFinal = (esParaLlevar && item.PrecioLlevar && Number(item.PrecioLlevar) > 0)
                         ? Number(item.PrecioLlevar)
                         : Number(item.Precio);
@@ -248,22 +259,16 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                               S/. {precioFinal.toFixed(2)}
                             </p>
                           </CardContent>
-                          <div 
-                            className={`p-2 border-t text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors ${esParaLlevar ? 'bg-orange-100 text-orange-700' : 'bg-gray-50 text-gray-600'}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleParaLlevar(item.PlatoID);
-                            }}
-                          >
-                            <Package className="w-3 h-3" />
-                            <span>Para Llevar</span>
-                            <input
-                              type="checkbox"
-                              checked={esParaLlevar}
-                              readOnly
-                              className="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                            />
-                          </div>
+                          {esParaLlevar && item.PrecioLlevar && Number(item.PrecioLlevar) > 0 ? (
+                            <div className="p-2 border-t text-xs flex items-center justify-center gap-2 bg-orange-100 text-orange-700">
+                              <Package className="w-3 h-3" />
+                              <span>Con Taper</span>
+                            </div>
+                          ) : !esParaLlevar ? (
+                            <div className="p-2 border-t text-xs flex items-center justify-center gap-2 bg-gray-50 text-gray-600">
+                              <span>Sin Taper</span>
+                            </div>
+                          ) : null}
                         </Card>
                       );
                     })}
@@ -400,10 +405,22 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                               console.log("🖨️ Creando comanda para nuevos platos (mobile):", detallesParaComanda);
                               console.log("📝 Comentario para nuevos platos (mobile):", comentario);
 
-                              // Si algún plato es ParaLlevar, anteponer 'Para Llevar' al comentario
+                              // Determinar el tipo de comanda basado en los platos agregados
                               let comentarioFinal = comentario;
-                              if (orderItems.some(item => item.ParaLlevar)) {
-                                comentarioFinal = comentario ? `Para Llevar | ${comentario}` : "Para Llevar";
+                              const platosParaLlevar = orderItems.filter(item => item.ParaLlevar);
+                              const platosParaMesa = orderItems.filter(item => !item.ParaLlevar);
+                              
+                              // AGREGADOS DESDE MODAL MESA - Caso B: Solo platos para llevar
+                              if (platosParaLlevar.length > 0 && platosParaMesa.length === 0) {
+                                comentarioFinal = comentario ? `MODAL_MESA_PARA_LLEVAR | ${comentario}` : "MODAL_MESA_PARA_LLEVAR";
+                              }
+                              // AGREGADOS DESDE MODAL MESA - Caso A: Solo platos para mesa  
+                              else if (platosParaMesa.length > 0 && platosParaLlevar.length === 0) {
+                                comentarioFinal = comentario ? `MODAL_MESA_NORMAL | ${comentario}` : "MODAL_MESA_NORMAL";
+                              }
+                              // AGREGADOS DESDE MODAL MESA - Mixto: Platos para mesa Y para llevar
+                              else if (platosParaLlevar.length > 0 && platosParaMesa.length > 0) {
+                                comentarioFinal = comentario ? `MODAL_MESA_MIXTO | ${comentario}` : "MODAL_MESA_MIXTO";
                               }
                               const comandaResponse = await fetch("/api/comanda-cocina", {
                                 method: "POST",
@@ -559,12 +576,30 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                             console.log("🖨️ Creando comanda para nuevos platos:", detallesParaComanda);
                             console.log("📝 Comentario para nuevos platos:", comentario);
 
+                            // Determinar el tipo de comanda basado en los platos agregados
+                            let comentarioFinal = comentario;
+                            const platosParaLlevar = orderItems.filter(item => item.ParaLlevar);
+                            const platosParaMesa = orderItems.filter(item => !item.ParaLlevar);
+                            
+                            // AGREGADOS DESDE MODAL MESA - Caso B: Solo platos para llevar
+                            if (platosParaLlevar.length > 0 && platosParaMesa.length === 0) {
+                              comentarioFinal = comentario ? `MODAL_MESA_PARA_LLEVAR | ${comentario}` : "MODAL_MESA_PARA_LLEVAR";
+                            }
+                            // AGREGADOS DESDE MODAL MESA - Caso A: Solo platos para mesa  
+                            else if (platosParaMesa.length > 0 && platosParaLlevar.length === 0) {
+                              comentarioFinal = comentario ? `MODAL_MESA_NORMAL | ${comentario}` : "MODAL_MESA_NORMAL";
+                            }
+                            // AGREGADOS DESDE MODAL MESA - Mixto: Platos para mesa Y para llevar
+                            else if (platosParaLlevar.length > 0 && platosParaMesa.length > 0) {
+                              comentarioFinal = comentario ? `MODAL_MESA_MIXTO | ${comentario}` : "MODAL_MESA_MIXTO";
+                            }
+
                             const comandaResponse = await fetch("/api/comanda-cocina", {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({
                                 pedidoID: pedido.PedidoID,
-                                comentario: comentario,
+                                comentario: comentarioFinal,
                                 detalles: detallesParaComanda
                               }),
                             });
