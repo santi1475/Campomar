@@ -410,17 +410,9 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                               const platosParaLlevar = orderItems.filter(item => item.ParaLlevar);
                               const platosParaMesa = orderItems.filter(item => !item.ParaLlevar);
                               
-                              // AGREGADOS DESDE MODAL MESA - Caso B: Solo platos para llevar
-                              if (platosParaLlevar.length > 0 && platosParaMesa.length === 0) {
-                                comentarioFinal = comentario ? `MODAL_MESA_PARA_LLEVAR | ${comentario}` : "MODAL_MESA_PARA_LLEVAR";
-                              }
-                              // AGREGADOS DESDE MODAL MESA - Caso A: Solo platos para mesa  
-                              else if (platosParaMesa.length > 0 && platosParaLlevar.length === 0) {
-                                comentarioFinal = comentario ? `MODAL_MESA_NORMAL | ${comentario}` : "MODAL_MESA_NORMAL";
-                              }
-                              // AGREGADOS DESDE MODAL MESA - Mixto: Platos para mesa Y para llevar
-                              else if (platosParaLlevar.length > 0 && platosParaMesa.length > 0) {
-                                comentarioFinal = comentario ? `MODAL_MESA_MIXTO | ${comentario}` : "MODAL_MESA_MIXTO";
+                              // Si hay platos para llevar, agregar indicación
+                              if (platosParaLlevar.length > 0) {
+                                comentarioFinal = comentario ? `Para llevar | ${comentario}` : "Para llevar";
                               }
                               const comandaResponse = await fetch("/api/comanda-cocina", {
                                 method: "POST",
@@ -581,17 +573,9 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                             const platosParaLlevar = orderItems.filter(item => item.ParaLlevar);
                             const platosParaMesa = orderItems.filter(item => !item.ParaLlevar);
                             
-                            // AGREGADOS DESDE MODAL MESA - Caso B: Solo platos para llevar
-                            if (platosParaLlevar.length > 0 && platosParaMesa.length === 0) {
-                              comentarioFinal = comentario ? `MODAL_MESA_PARA_LLEVAR | ${comentario}` : "MODAL_MESA_PARA_LLEVAR";
-                            }
-                            // AGREGADOS DESDE MODAL MESA - Caso A: Solo platos para mesa  
-                            else if (platosParaMesa.length > 0 && platosParaLlevar.length === 0) {
-                              comentarioFinal = comentario ? `MODAL_MESA_NORMAL | ${comentario}` : "MODAL_MESA_NORMAL";
-                            }
-                            // AGREGADOS DESDE MODAL MESA - Mixto: Platos para mesa Y para llevar
-                            else if (platosParaLlevar.length > 0 && platosParaMesa.length > 0) {
-                              comentarioFinal = comentario ? `MODAL_MESA_MIXTO | ${comentario}` : "MODAL_MESA_MIXTO";
+                            // Si hay platos para llevar, agregar indicación
+                            if (platosParaLlevar.length > 0) {
+                              comentarioFinal = comentario ? `Para llevar | ${comentario}` : "Para llevar";
                             }
 
                             const comandaResponse = await fetch("/api/comanda-cocina", {

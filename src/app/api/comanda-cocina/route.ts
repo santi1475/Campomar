@@ -3,7 +3,16 @@ import { NextResponse, NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { pedidoID, comentario, detalles } = await req.json();
+    const requestData = await req.json();
+    const { pedidoID, comentario, detalles } = requestData;
+
+    console.log("📥 API comanda-cocina recibió:", JSON.stringify(requestData, null, 2));
+    console.log("🔍 Análisis de parámetros:", {
+      pedidoID,
+      comentario,
+      detallesCount: detalles?.length || 0,
+      detalles: detalles
+    });
 
     if (!pedidoID) {
       return NextResponse.json({ message: "PedidoID es requerido" }, { status: 400 });

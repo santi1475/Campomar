@@ -128,25 +128,19 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
         if (!draft.length || !pedidoId) return
         setIsSubmitting(true)
         try {
-            // Determinar el tipo de productos agregados en pedido para llevar
+            // Determinar si el cliente tiene taper (usa precio normal en vez del precio para llevar)
             const platosConTaper = draft.filter(d => {
                 const plato = platos.find(p => p.PlatoID === d.PlatoID);
-                return plato && d.Precio === Number(plato.Precio) && !d.ParaLlevar; // Precio normal, sin taper
+                // Cliente con taper = usa precio normal cuando debería usar precio para llevar
+                const deberiaUsarPrecioLlevar = plato?.PrecioLlevar && Number(plato.PrecioLlevar) > 0;
+                const usaPrecioNormal = plato && d.Precio === Number(plato.Precio);
+                return deberiaUsarPrecioLlevar && usaPrecioNormal;
             });
-            const platosSinTaper = draft.filter(d => d.ParaLlevar); // Precio para llevar
             
             let comentarioFinal = comentario;
-            // AGREGADOS PARA LLEVAR - Caso B: Solo platos con precio normal (cliente tiene taper)
-            if (platosConTaper.length > 0 && platosSinTaper.length === 0) {
-                comentarioFinal = comentario ? `MODAL_LLEVAR_CON_TAPER | ${comentario}` : "MODAL_LLEVAR_CON_TAPER";
-            }
-            // AGREGADOS PARA LLEVAR - Caso A: Solo platos con precio para llevar
-            else if (platosSinTaper.length > 0 && platosConTaper.length === 0) {
-                comentarioFinal = comentario ? `MODAL_LLEVAR_SIN_TAPER | ${comentario}` : "MODAL_LLEVAR_SIN_TAPER";
-            }
-            // AGREGADOS PARA LLEVAR - Mixto: Platos con y sin taper
-            else if (platosConTaper.length > 0 && platosSinTaper.length > 0) {
-                comentarioFinal = comentario ? `MODAL_LLEVAR_MIXTO | ${comentario}` : "MODAL_LLEVAR_MIXTO";
+            // Si hay platos con precio normal, indica que el cliente tiene taper
+            if (platosConTaper.length > 0) {
+                comentarioFinal = comentario ? `Cliente con taper | ${comentario}` : "Cliente con taper";
             }
             await onAddPlatos(
                 draft.map((d) => ({
@@ -158,6 +152,44 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                 })),
                 comentarioFinal,
             )
+
+            // Generar comanda para cocina con los nuevos platos agregados
+            const detallesParaComanda = draft.map(item => ({
+                PlatoID: item.PlatoID,
+                Cantidad: item.Cantidad,
+                Descripcion: `${item.Descripcion}${item.ParaLlevar ? ' (P/LLEVAR)' : ''}`
+            }));
+
+            console.log("🖨️ Creando comanda para nuevos platos para llevar:", detallesParaComanda);
+            console.log("📝 Comentario para nuevos platos para llevar:", comentarioFinal);
+
+            const requestBody = {
+                pedidoID: pedidoId,
+                comentario: comentarioFinal,
+                detalles: detallesParaComanda
+            };
+            console.log("📤 Enviando request a API:", JSON.stringify(requestBody, null, 2));
+
+            const comandaResponse = await fetch("/api/comanda-cocina", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestBody),
+            });
+
+            if (comandaResponse.ok) {
+                const comandaData = await comandaResponse.json();
+                console.log("✅ Comanda para llevar creada exitosamente:", {
+                    ComandaID: comandaData.ComandaID,
+                    Comentario: comandaData.Comentario
+                });
+                
+                alert(`¡Platos agregados! Comanda #${comandaData.ComandaID} enviada a cocina para imprimir solo los nuevos platos.`);
+            } else {
+                const errorData = await comandaResponse.json();
+                console.error("❌ Error al crear comanda para llevar:", errorData);
+                alert(`Error al crear la comanda: ${errorData.message}`);
+            }
+
             setDraft([])
             setComentario("")
             setOpen(false)
