@@ -148,7 +148,7 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                     Cantidad: d.Cantidad,
                     Descripcion: d.Descripcion,
                     ParaLlevar: d.ParaLlevar,
-                    PrecioUnitario: d.Precio,
+                    PrecioUnitario: d.Precio, // Ya está correctamente calculado al agregar al draft
                 })),
                 comentarioFinal,
             )

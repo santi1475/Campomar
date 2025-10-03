@@ -83,21 +83,17 @@ export async function GET(req: NextRequest) {
     });
 
     const result = pedidos.map((p) => {
-      // Calcular subtotales usando PrecioLlevar si aplica y existe (>0)
+      // Usar el PrecioUnitario real guardado en cada detalle (refleja el precio en el momento de la venta)
       const platosDet = p.detallepedidos.map((d) => {
-        const precioBase = p.ParaLlevar
-          ? (Number(d.platos?.PrecioLlevar ?? 0) > 0
-              ? Number(d.platos?.PrecioLlevar)
-              : Number(d.platos?.Precio ?? 0))
-          : Number(d.platos?.Precio ?? 0);
+        const precioUnitario = Number(d.PrecioUnitario ?? 0);
         return {
           DetalleID: d.DetalleID,
           PlatoID: d.PlatoID,
           Descripcion: d.platos?.Descripcion ?? null,
           Cantidad: d.Cantidad,
-          UnitPrecio: precioBase,
-          Subtotal: d.Cantidad * precioBase,
-          EsPrecioLlevar: p.ParaLlevar && (Number(d.platos?.PrecioLlevar ?? 0) > 0)
+          UnitPrecio: precioUnitario,
+          Subtotal: d.Cantidad * precioUnitario,
+          EsPrecioLlevar: p.ParaLlevar && precioUnitario === Number(d.platos?.PrecioLlevar ?? 0)
         };
       });
       const totalCalculado = platosDet.reduce((acc, pl) => acc + pl.Subtotal, 0);
@@ -109,8 +105,8 @@ export async function GET(req: NextRequest) {
         MetodoPagoID: p.TipoPago,
         MetodoPago: p.tipopago?.Descripcion ?? null,
         ParaLlevar: p.ParaLlevar,
-        // Si es para llevar usamos el total recalculado para reflejar precio correcto
-        Total: p.ParaLlevar ? totalCalculado : p.Total,
+        // Usar siempre el total calculado basado en PrecioUnitario real de cada detalle
+        Total: totalCalculado,
         Platos: platosDet,
       };
     });

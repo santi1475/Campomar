@@ -150,9 +150,6 @@ export default function ParaLlevarPage() {
             const PedidoID = pedido.PedidoID
             const creados: DetalleView[] = []
             for (const item of orderItems) {
-                // Calcular el precio correcto según el tipo guardado en el item
-                const plato = platos.find(p => p.PlatoID === item.PlatoID);
-                let precio = precioFinal(plato!, item.paraLlevar);
                 const dResp = await fetch("/api/detallepedidos", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -161,7 +158,7 @@ export default function ParaLlevarPage() {
                         PlatoID: item.PlatoID,
                         Cantidad: item.Cantidad,
                         ParaLlevar: item.paraLlevar,
-                        PrecioUnitario: item.PrecioUnitario // <--- Enviar el precio real
+                        PrecioUnitario: item.PrecioUnitario // Usar el precio ya calculado correctamente en el carrito
                     }),
                 })
                 if (dResp.ok) {
@@ -171,7 +168,7 @@ export default function ParaLlevarPage() {
                         PlatoID: item.PlatoID,
                         descripcionPlato: item.descripcionPlato,
                         Cantidad: item.Cantidad,
-                        PrecioUnitario: precio,
+                        PrecioUnitario: item.PrecioUnitario, // Usar el precio del carrito, no recalcular
                         paraLlevar: item.paraLlevar,
                         Impreso: false,
                     })

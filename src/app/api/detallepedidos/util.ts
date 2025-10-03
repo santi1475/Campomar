@@ -21,15 +21,8 @@ export async function recalcularTotal(pedidoId: number, tx?: any) {
   const cero = new Prisma.Decimal(0);
 
   const nuevoTotal = detalles.reduce((acc: Prisma.Decimal, detalle: any) => {
-
-    let precio: Prisma.Decimal = detalle.platos?.Precio || cero;
-    const precioLlevar: Prisma.Decimal | null = detalle.platos?.PrecioLlevar ?? null;
-
-    const usarPrecioLlevar = (esPedidoParaLlevarCompleto || detalle.ParaLlevar) && precioLlevar && precioLlevar.greaterThan(cero);
-    
-    if (usarPrecioLlevar) {
-      precio = precioLlevar;
-    }
+    // Usar el PrecioUnitario guardado en el detalle, que ya refleja la decisión correcta del momento de la venta
+    const precio: Prisma.Decimal = new Prisma.Decimal(detalle.PrecioUnitario || 0);
     const cantidad = new Prisma.Decimal(detalle.Cantidad);
     return acc.plus(precio.mul(cantidad));
   }, cero);
