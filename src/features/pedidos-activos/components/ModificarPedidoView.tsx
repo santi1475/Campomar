@@ -28,6 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/shared/ui/spinner"
+import { ro } from "date-fns/locale"
 
 export const MesaOcupada = () => {
   const empleado: empleados = useEmpleadoStore((state: any) => state.empleado)
@@ -154,13 +155,22 @@ export const MesaOcupada = () => {
   }
 
   const handleEliminarPlato = async (detalleId: number) => {
+    if (!pedido || !empleado) return;
+
     setIsLoading(true)
     try {
       const response = await fetch(`/api/detallepedidos/${detalleId}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usuarioCanceladorId: empleado.EmpleadoID }),
       })
-      if (!response.ok) throw new Error("Error al eliminar el plato del pedido")
-      await fetchPedido();
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Error al eliminar el plato del pedido")
+      }
+
+      setPedido(null)
+      router.back();
     } catch (error) {
       console.error(error)
       setError("Error al eliminar el plato del pedido.")
@@ -178,6 +188,8 @@ export const MesaOcupada = () => {
     try {
       const response = await fetch(`/api/pedidos/${pedido.PedidoID}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usuarioCanceladorId: empleado?.EmpleadoID }),
       })
       if (!response.ok) throw new Error("Error al eliminar el pedido")
       setPedido(null)

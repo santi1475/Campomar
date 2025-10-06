@@ -175,19 +175,24 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
     };
 
     const handleEliminarPedido = async () => {
+        if (!pedidoId || !empleado) return;
         setIsLoading(true);
         try {
             const response = await fetch(`/api/pedidos/${pedidoId}`, {
                 method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    usuarioCanceladorId: empleado.EmpleadoID,
+                }),
             });
             if (!response.ok) {
-                throw new Error("Error al eliminar el pedido");
+                throw new Error("Error al cancelar el pedido");
             }
             setPedido(null);
             router.push("/empleado/para-llevar/lista");
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            setError("Error al eliminar el pedido. Inténtalo de nuevo más tarde.");
+            setError(error.message);
         } finally {
             setIsLoading(false);
         }
@@ -252,7 +257,7 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
         <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-2 sm:p-4 lg:p-8">
             <div className="mx-auto max-w-7xl">
                 <Card className="overflow-hidden shadow-xl border-0">
-                    
+
 
                     <CardContent className="p-0">
                         <div className="flex flex-col xl:flex-row">

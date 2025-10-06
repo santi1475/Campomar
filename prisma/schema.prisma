@@ -18,6 +18,7 @@ model empleados {
   Activo         Boolean?      @default(true)
   tipoempleado   tipoempleado? @relation(fields: [TipoEmpleadoID], references: [TipoEmpleadoID], onDelete: NoAction, onUpdate: NoAction, map: "empleados_ibfk_1")
   pedidos        pedidos[]
+  auditoria      auditoria[]
 }
 
 model pedidos {
@@ -106,4 +107,20 @@ model comandas_cocina {
   FechaCreacion    DateTime  @default(now()) @db.Timestamptz(6)
   
   pedido           pedidos   @relation(fields: [PedidoID], references: [PedidoID])
+}
+
+model auditoria {
+  id                Int      @id @default(autoincrement())
+  accion            String   @db.VarChar(50) // "CANCELACION_PEDIDO", "MODIFICACION_PRECIO", etc.
+  pedidoId          Int
+  usuarioId         Int // Quién realizó la acción (el admin que cancela)
+  detalles          Json // Snapshot del pedido (platos, total, mozo original)
+  fechaCreacion     DateTime
+  fechaAccion       DateTime @default(now())
+  tiempoTranscurrido Int // En minutos
+  nivelAlerta       String   @db.VarChar(20) // "BAJO", "MEDIO", "ALTO"
+  justificacion     String?  @db.Text
+
+  // Relación con el usuario que realizó la acción
+  empleado empleados @relation(fields: [usuarioId], references: [EmpleadoID])
 }

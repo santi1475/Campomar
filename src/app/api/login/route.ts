@@ -2,7 +2,20 @@ import prisma from '@/lib/db';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const { DNI, password } = await request.json();
+  let DNI: string | undefined;
+  let password: string | undefined;
+  try {
+    const body = await request.json();
+    DNI = body?.DNI;
+    password = body?.password;
+  } catch (err) {
+    console.warn('LOGIN: request.json() falló o body vacío/no JSON válido', err);
+    return NextResponse.json({ message: 'Se requiere un cuerpo JSON con DNI y password' }, { status: 400 });
+  }
+
+  if (!DNI || !password) {
+    return NextResponse.json({ message: 'Se requieren DNI y password' }, { status: 400 });
+  }
 
   try {
     // Busca el usuario por DNI

@@ -7,7 +7,14 @@ export async function PUT(
 ) {
   try {
     const pedidoId = parseInt(params.id);
-    const { detalleIds } = await request.json();
+    let detalleIds: any;
+    try {
+      const body = await request.json();
+      detalleIds = body?.detalleIds;
+    } catch (err) {
+      console.warn('PUT marcar-impresos: request.json() falló o body vacío/no JSON válido', err);
+      return NextResponse.json({ message: 'Se requiere un cuerpo JSON con "detalleIds"' }, { status: 400 });
+    }
 
     if (!pedidoId || !detalleIds || !Array.isArray(detalleIds) || detalleIds.length === 0) {
       return NextResponse.json(

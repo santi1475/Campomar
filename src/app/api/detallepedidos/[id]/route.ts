@@ -52,9 +52,15 @@ export async function PUT(request: Request, { params }: Segments) {
   }
 
   try {
-    const { PlatoID, Cantidad, operacion, cantidad } = await putSchema.validate(
-      await request.json()
-    );
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (err) {
+      console.warn('PUT /api/detallepedidos/[id]: request.json() falló o body vacío/no JSON válido', err);
+      return NextResponse.json({ message: 'Se requiere un cuerpo JSON válido' }, { status: 400 });
+    }
+
+    const { PlatoID, Cantidad, operacion, cantidad } = await putSchema.validate(body);
 
     let nuevaCantidad = detallePedido.Cantidad;
 

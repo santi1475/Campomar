@@ -29,9 +29,15 @@ const postSchema = yup.object({
 
 export async function POST(request: Request) {
   try {
-    const { DNI, Nombre, Password, TipoEmpleadoID } = await postSchema.validate(
-      await request.json()
-    );
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (err) {
+      console.warn('POST /api/empleados: request.json() falló o body vacío/no JSON válido', err);
+      return NextResponse.json({ message: 'Se requiere un cuerpo JSON válido' }, { status: 400 });
+    }
+
+    const { DNI, Nombre, Password, TipoEmpleadoID } = await postSchema.validate(body);
 
     const empleado = await prisma.empleados.create({
       data: {

@@ -50,9 +50,15 @@ export async function PUT(request: Request, { params }: Segments) {
   }
 
   try {
-    const { NumeroMesa, Estado } = await putSchema.validate(
-      await request.json()
-    );
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (err) {
+      console.warn('PUT /api/mesas/[id]: request.json() falló o body vacío/no JSON válido', err);
+      return NextResponse.json({ message: 'Se requiere un cuerpo JSON válido' }, { status: 400 });
+    }
+
+    const { NumeroMesa, Estado } = await putSchema.validate(body);
     const updatedMesa = await prisma.mesas.update({
       where: {
         MesaID: parseInt(id),

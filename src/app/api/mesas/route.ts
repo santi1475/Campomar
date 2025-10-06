@@ -28,9 +28,15 @@ const postSchema = yup.object({
 
 export async function POST(request: Request) {
   try {
-    const { NumeroMesa, Estado } = await postSchema.validate(
-      await request.json()
-    );
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (err) {
+      console.warn('POST /api/mesas: request.json() falló o body vacío/no JSON válido', err);
+      return NextResponse.json({ message: 'Se requiere un cuerpo JSON válido' }, { status: 400 });
+    }
+
+    const { NumeroMesa, Estado } = await postSchema.validate(body);
     const mesa = await prisma.mesas.create({
       data: {
         NumeroMesa,

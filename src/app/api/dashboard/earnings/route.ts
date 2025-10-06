@@ -1,6 +1,7 @@
 import prisma from "@/lib/db";
 import { NextResponse } from "next/server";
 import { normalizePeruRange } from "@/lib/dateRange";
+import { de, deAT } from "date-fns/locale";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -10,14 +11,23 @@ export async function GET(req: Request) {
 
   try {
     // Consulta las ganancias totales
-    const totalEarnings = await prisma.pedidos.aggregate({
-      _sum: { Total: true },
+    const pedidosPagados = await prisma.pedidos.findMany({
       where: {
         Fecha: peruRange ? { gte: peruRange.start, lte: peruRange.end } : undefined,
         Estado: false,
       },
+      include: {
+        detallepedidos: true,
+      },
     });
 
+    const totalEarnings = pedidosPagados.reduce((acc, pedido) => {
+      const pedidoTotal = pedido.detallepedidos.reduce((subAcc, detalle) => {
+        return subAcc + (Number(detalle.PrecioUnitario) * detalle.Cantidad);
+      }, 0);
+      return acc + pedidoTotal;
+    }, 0);
+    
     // Consulta las ganancias por tipo de pago
     const earningsByPaymentType = await prisma.pedidos.groupBy({
       by: ["TipoPago"],
@@ -49,7 +59,7 @@ export async function GET(req: Request) {
     );
 
     return NextResponse.json({
-      earnings: totalEarnings._sum.Total || 0,
+      earnings: totalEarnings || 0,
       earningsByPaymentType: earningsData,
       meta: peruRange ? { appliedPeruRange: { start: peruRange.start.toISOString(), end: peruRange.end.toISOString() } } : undefined,
     });
