@@ -4,24 +4,20 @@ A comprehensive restaurant management system built with the Next.js framework. T
 
 ## 📋 Table of Contents
 
-- [About The Project](#about-the-project)
-- [Built With](#built-with)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Database Schema](#database-schema)
-- [Deployment](#deployment)
-- [License](#license)
-
+- [About The Project](#-about-the-project)
+- [Built With](#-built-with)
+- [Getting Started](#-getting-started)
+- [Features](#-features)
+- [Project Structure](#-project-structure)
+- [Database Schema](#-database-schema)
+- [Deployment](#-deployment)
+- [License](#-license)
 
 ## 📖 About The Project
 
 **Campomar** is a robust and intuitive web application designed to streamline restaurant operations. It offers a role-based system with distinct functionalities for administrators and employees, ensuring efficient management of daily tasks.
 
 The system is a full-stack application leveraging the power of **Next.js** for both the frontend and backend, with a **PostgreSQL** database hosted on **Supabase** and managed through the **Prisma ORM**. The user interface is built with **React** and styled with **Tailwind CSS**, utilizing **shadcn/ui** for a modern and responsive component library.
-
 
 ## 🛠️ Built With
 
@@ -49,7 +45,6 @@ This project is built with a modern technology stack, ensuring a high-quality an
 
 - **[Vercel](https://vercel.com/)**: A cloud platform for static sites and serverless functions, perfect for deploying Next.js applications.
 
-
 ## 🚀 Getting Started
 
 To get a local copy up and running, follow these simple steps.
@@ -70,11 +65,13 @@ Make sure you have the following installed on your machine:
     git clone https://github.com/santi1475/Campomar.git
     cd Campomar
     ```
+
 2.  **Install dependencies:**
 
     ```sh
     npm install
     ```
+
 3.  **Set up environment variables:**
 
     Create a `.env` file in the root of the project. You will need to get your database connection strings from your Supabase project settings (`Settings > Database`).
@@ -86,6 +83,7 @@ Make sure you have the following installed on your machine:
     # Direct connection string for Prisma Migrate (used for database migrations)
     DIRECT_URL="postgresql://postgres:[YOUR-PASSWORD]@[AWS-ENDPOINT].supabase.co:6543/postgres"
     ```
+
     **Note:** Supabase uses two different ports for connecting to the database. Port `5432` is for the pooled connection (used by `DATABASE_URL`), and port `6543` is for the direct connection (used by `DIRECT_URL`).
 
 4.  **Apply database migrations:**
@@ -95,6 +93,7 @@ Make sure you have the following installed on your machine:
     ```sh
     npx prisma migrate dev
     ```
+
 5.  **Run the development server:**
 
     ```sh
@@ -102,7 +101,6 @@ Make sure you have the following installed on your machine:
     ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
 
 ## ✨ Features
 
@@ -116,24 +114,25 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - **Auditing**: Critical actions, such as order cancellations, are logged for security and tracking purposes.
 - **Responsive Design**: The application is fully responsive and works on all devices.
 
-
 ## 📂 Project Structure
 
 The project follows the standard Next.js `app` router directory structure.
 
-      /
-      ├── prisma/           # Prisma schema and migrations
-      ├── public/           # Static assets
-      └── src/
-      ├── app/              # Application routes
-      │   ├── (auth)/       # Authentication layout and pages
-      │   ├── admin/        # Admin dashboard pages
-      │   ├── api/          # API routes
-      │   └── empleado/     # Employee panel pages
-      ├── components/       # Reusable UI components
-      ├── features/         # Feature-specific components and logic
-      ├── lib/              # Utility functions and database client
-      └── store/            # Zustand store for state management
+```
+/
+├── prisma/           # Prisma schema and migrations
+├── public/           # Static assets
+└── src/
+    ├── app/              # Application routes
+    │   ├── (auth)/       # Authentication layout and pages
+    │   ├── admin/        # Admin dashboard pages
+    │   ├── api/          # API routes
+    │   └── empleado/     # Employee panel pages
+    ├── components/       # Reusable UI components
+    ├── features/         # Feature-specific components and logic
+    ├── lib/              # Utility functions and database client
+    └── store/            # Zustand store for state management
+```
 
 ## 🗄️ Database Schema
 
@@ -149,7 +148,6 @@ The database schema is defined using Prisma and includes the following models:
 -   And other related tables like `categorias`, `tipoempleado`, and `tipopago`.
 
 For a detailed view of the schema, please refer to the `prisma/schema.prisma` file.
-
 
 ## 🌐 Deployment
 
