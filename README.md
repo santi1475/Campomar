@@ -13,13 +13,14 @@ A comprehensive restaurant management system built with the Next.js framework. T
 - [Project Structure](#project-structure)
 - [Database Schema](#database-schema)
 - [Deployment](#deployment)
+- [License](#license)
 
 
 ## 📖 About The Project
 
 **Campomar** is a robust and intuitive web application designed to streamline restaurant operations. It offers a role-based system with distinct functionalities for administrators and employees, ensuring efficient management of daily tasks.
 
-The system is a full-stack application leveraging the power of **Next.js** for both the frontend and backend, with a **PostgreSQL** database managed through the **Prisma ORM**. The user interface is built with **React** and styled with **Tailwind CSS**, utilizing **shadcn/ui** for a modern and responsive component library.
+The system is a full-stack application leveraging the power of **Next.js** for both the frontend and backend, with a **PostgreSQL** database hosted on **Supabase** and managed through the **Prisma ORM**. The user interface is built with **React** and styled with **Tailwind CSS**, utilizing **shadcn/ui** for a modern and responsive component library.
 
 
 ## 🛠️ Built With
@@ -42,7 +43,7 @@ This project is built with a modern technology stack, ensuring a high-quality an
 
 ### Database
 
-- **[PostgreSQL](https://www.postgresql.org/)**: A powerful, open-source object-relational database system.
+- **[Supabase](https://supabase.com/)**: An open-source Firebase alternative for building secure and scalable backends. It provides a full PostgreSQL database and more.
 
 ### Deployment
 
@@ -59,14 +60,14 @@ Make sure you have the following installed on your machine:
 
 - **Node.js** (v18.17.0 or later)
 - **npm**, **yarn**, or **pnpm**
-- A **PostgreSQL** database instance
+- A **Supabase** project. You can create one for free at [supabase.com](https://supabase.com/).
 
 ### Installation
 
 1.  **Clone the repository:**
 
     ```sh
-    git clone [https://github.com/santi1475/Campomar.git](https://github.com/santi1475/Campomar.git)
+    git clone https://github.com/santi1475/Campomar.git
     cd Campomar
     ```
 2.  **Install dependencies:**
@@ -76,13 +77,20 @@ Make sure you have the following installed on your machine:
     ```
 3.  **Set up environment variables:**
 
-    Create a `.env` file in the root of the project and add your database connection string:
+    Create a `.env` file in the root of the project. You will need to get your database connection strings from your Supabase project settings (`Settings > Database`).
 
     ```env
-    DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
-    DIRECT_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
+    # Connection string for Prisma Client (used by the application)
+    DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@[AWS-ENDPOINT].supabase.co:5432/postgres"
+
+    # Direct connection string for Prisma Migrate (used for database migrations)
+    DIRECT_URL="postgresql://postgres:[YOUR-PASSWORD]@[AWS-ENDPOINT].supabase.co:6543/postgres"
     ```
+    **Note:** Supabase uses two different ports for connecting to the database. Port `5432` is for the pooled connection (used by `DATABASE_URL`), and port `6543` is for the direct connection (used by `DIRECT_URL`).
+
 4.  **Apply database migrations:**
+
+    This command will sync your Prisma schema with your Supabase database.
 
     ```sh
     npx prisma migrate dev
@@ -105,6 +113,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - **Order Management**: Create, modify, and finalize orders with a user-friendly interface.
 - **Real-Time Updates**: The application reflects changes in real-time, ensuring all staff members are up-to-date.
 - **Kitchen Ticket Printing**: Generate and print kitchen tickets for new orders and added items.
+- **Auditing**: Critical actions, such as order cancellations, are logged for security and tracking purposes.
 - **Responsive Design**: The application is fully responsive and works on all devices.
 
 
@@ -136,6 +145,7 @@ The database schema is defined using Prisma and includes the following models:
 -   `pedidos`: Stores order information, including the employee who took the order and the total amount.
 -   `detallepedidos`: A join table for the many-to-many relationship between `pedidos` and `platos`.
 -   `pedido_mesas`: A join table to associate orders with one or more tables.
+-   `auditoria`: Logs important system events, such as order cancellations, for accountability and tracking. It records who performed the action, when, and a snapshot of the relevant data.
 -   And other related tables like `categorias`, `tipoempleado`, and `tipopago`.
 
 For a detailed view of the schema, please refer to the `prisma/schema.prisma` file.
@@ -144,3 +154,20 @@ For a detailed view of the schema, please refer to the `prisma/schema.prisma` fi
 ## 🌐 Deployment
 
 This project is optimized for deployment on the **Vercel** platform. Simply connect your GitHub repository to a new Vercel project, and it will be deployed automatically with every push to the `main` branch.
+
+## 📜 License
+
+This project is not licensed for open-source use. Please refer to [Copyright Law](https://github.com/santi1475/Campomar/blob/8a532fdf84a216bbe95df60548c16da7deba6de1/LICENSE) for more information.
+
+## 📨 Contact
+
+<div align="center">
+
+<a href="https://www.linkedin.com/in/santiago-g-v/">
+  <img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn"/>
+</a>
+<a href="mailto:santiguz1475@gmail.com">
+  <img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Gmail"/>
+</a>
+
+</div>
