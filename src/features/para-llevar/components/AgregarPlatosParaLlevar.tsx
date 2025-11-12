@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Plus, Search, Trash } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
+import { ordenarPlatosPorCategoria } from "@/lib/utils"
 
 interface PedidoDetalle {
     DetalleID: number
@@ -22,6 +23,10 @@ interface PedidoDetalle {
     descripcionPlato: string
     Cantidad: number
     PrecioUnitario: number
+    CategoriaID: number;
+    categorias?: {
+        Color: string | null;
+    };
 }
 
 interface Props {
@@ -35,12 +40,11 @@ interface Props {
 }
 
 export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido, onAddPlatos }: Props) {
-    // Estados principales
     const [open, setOpen] = useState(false)
     const [search, setSearch] = useState("")
     const [categoria, setCategoria] = useState("")
     const [platos, setPlatos] = useState<
-        { PlatoID: number; Descripcion: string; Precio: number; PrecioLlevar?: number; CategoriaID: number }[]
+        { PlatoID: number; Descripcion: string; Precio: number; PrecioLlevar?: number; CategoriaID: number, categorias?: { Color: string | null } }[]
     >([])
     const [draft, setDraft] = useState<
         { PlatoID: number; Descripcion: string; Precio: number; Cantidad: number; ParaLlevar: boolean }[]
@@ -49,13 +53,11 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
     const [comentario, setComentario] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Fetch platos solo cuando el modal está abierto
     useEffect(() => {
         if (open) {
             fetch("/api/platos")
                 .then((r) => (r.ok ? r.json() : []))
                 .then((data) => {
-                    // Normalizar datos para evitar nulos y tipos incorrectos
                     const platosAdaptados = Array.isArray(data)
                         ? data.map((pl: any) => ({
                             PlatoID: Number(pl.PlatoID),
@@ -70,24 +72,15 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
         }
     }, [open])
 
-    // Filtrado y orden natural de platos por categoría
-    const ordenCategorias = [4, 3, 2, 6, 7, 1, 8];
     const filtrados = platos
         .filter(p => {
             const texto = p.Descripcion.toLowerCase().includes(search.toLowerCase());
             const catOk = !categoria || categoria === 'todos' || p.CategoriaID === Number(categoria);
             return texto && catOk;
         })
-        .sort((a, b) => {
-            const indexA = ordenCategorias.indexOf(a.CategoriaID);
-            const indexB = ordenCategorias.indexOf(b.CategoriaID);
-            if (indexA === -1 && indexB === -1) return 0;
-            if (indexA === -1) return 1;
-            if (indexB === -1) return -1;
-            return indexA - indexB;
-        });
 
-    // Agregar plato al draft
+    const platosOrdenados = ordenarPlatosPorCategoria(filtrados);
+
     const add = (pl: any) => {
         const esParaLlevar = modoParaLlevar
         const precio =
@@ -104,23 +97,17 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
         ])
     }
 
-    // Toggle modo para llevar global
     const handleToggleModoParaLlevar = () => {
         setModoParaLlevar(!modoParaLlevar)
-        // Limpiar el draft cuando cambie el modo para evitar confusiones
         setDraft([])
     }
 
-    // Incrementar cantidad
     const inc = (id: number) =>
         setDraft((prev) => prev.map((i) => (i.PlatoID === id ? { ...i, Cantidad: i.Cantidad + 1 } : i)))
-    // Decrementar cantidad
     const dec = (id: number) =>
         setDraft((prev) => prev.map((i) => (i.PlatoID === id ? { ...i, Cantidad: Math.max(1, i.Cantidad - 1) } : i)))
-    // Eliminar plato del draft
     const del = (id: number) => setDraft((prev) => prev.filter((i) => i.PlatoID !== id))
 
-    // Calcular total
     const totalDraft = draft.reduce((a, i) => a + i.Precio * i.Cantidad, 0)
 
     // Submit
@@ -131,12 +118,11 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
             // Determinar si el cliente tiene taper (usa precio normal en vez del precio para llevar)
             const platosConTaper = draft.filter(d => {
                 const plato = platos.find(p => p.PlatoID === d.PlatoID);
-                // Cliente con taper = usa precio normal cuando debería usar precio para llevar
                 const deberiaUsarPrecioLlevar = plato?.PrecioLlevar && Number(plato.PrecioLlevar) > 0;
                 const usaPrecioNormal = plato && d.Precio === Number(plato.Precio);
                 return deberiaUsarPrecioLlevar && usaPrecioNormal;
             });
-            
+
             let comentarioFinal = comentario;
             // Si hay platos con precio normal, indica que el cliente tiene taper
             if (platosConTaper.length > 0) {
@@ -153,22 +139,17 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                 comentarioFinal,
             )
 
-            // Generar comanda para cocina con los nuevos platos agregados
             const detallesParaComanda = draft.map(item => ({
                 PlatoID: item.PlatoID,
                 Cantidad: item.Cantidad,
                 Descripcion: `${item.Descripcion}${item.ParaLlevar ? ' (P/LLEVAR)' : ''}`
             }));
 
-            console.log("🖨️ Creando comanda para nuevos platos para llevar:", detallesParaComanda);
-            console.log("📝 Comentario para nuevos platos para llevar:", comentarioFinal);
-
             const requestBody = {
                 pedidoID: pedidoId,
                 comentario: comentarioFinal,
                 detalles: detallesParaComanda
             };
-            console.log("📤 Enviando request a API:", JSON.stringify(requestBody, null, 2));
 
             const comandaResponse = await fetch("/api/comanda-cocina", {
                 method: "POST",
@@ -182,11 +163,10 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                     ComandaID: comandaData.ComandaID,
                     Comentario: comandaData.Comentario
                 });
-                
+
                 alert(`¡Platos agregados! Comanda #${comandaData.ComandaID} enviada a cocina para imprimir solo los nuevos platos.`);
             } else {
                 const errorData = await comandaResponse.json();
-                console.error("❌ Error al crear comanda para llevar:", errorData);
                 alert(`Error al crear la comanda: ${errorData.message}`);
             }
 
@@ -247,7 +227,7 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                                         {modoParaLlevar ? "Precios Para Llevar" : "Precios sin Taper"}
                                     </span>
                                 </div>
-                                <Switch 
+                                <Switch
                                     id="modo-para-llevar"
                                     checked={modoParaLlevar}
                                     onCheckedChange={handleToggleModoParaLlevar}
@@ -255,14 +235,18 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2 lg:p-3 grid gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 auto-rows-min">
-                            {filtrados.map((pl) => {
+                            {platosOrdenados.map((pl) => {
                                 const esParaLlevar = modoParaLlevar
                                 const precioFinal =
                                     !esParaLlevar
                                         ? Number(pl.Precio)
                                         : (pl.PrecioLlevar && Number(pl.PrecioLlevar) > 0 ? Number(pl.PrecioLlevar) : Number(pl.Precio))
                                 return (
-                                    <Card key={pl.PlatoID} className="cursor-pointer hover:shadow-md transition-shadow">
+                                    <Card
+                                        key={pl.PlatoID}
+                                        className="cursor-pointer hover:shadow-md transition-shadow"
+                                        style={{ backgroundColor: pl.categorias?.Color || '#FFFFFF' }}
+                                    >
                                         <CardContent
                                             className="p-2 lg:p-3 flex flex-col items-center text-center gap-1"
                                             onClick={() => add(pl)}

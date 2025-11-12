@@ -13,15 +13,14 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Plus, Search, Trash, X, Package } from "lucide-react" // Importar 'Package'
+import { Plus, Search, Trash, X, Package } from "lucide-react"
 import type { platos } from "@prisma/client"
 import { ordenarPlatosPorCategoria } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCocinaModal"
 
-// --- INICIO DE LA MODIFICACIÓN ---
+
 interface Props {
   addPlatoToPedido: (platoId: number, cantidad: number, paraLlevar: boolean) => Promise<void> // Modificar firma
   onPedidoUpdated: () => Promise<void>
@@ -44,9 +43,12 @@ interface Props {
 
 interface PedidoItem extends platos {
   Cantidad: number
-  ParaLlevar?: boolean // Añadir campo opcional
+  ParaLlevar?: boolean
+  categorias?: {
+    Color: string | null
+  }
 }
-// --- FIN DE LA MODIFICACIÓN ---
+
 
 export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }: Props) => {
   const [orderItems, setOrderItems] = useState<PedidoItem[]>([])
@@ -59,9 +61,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showMobileCart, setShowMobileCart] = useState(false)
   const [comentario, setComentario] = useState("")
-  // --- INICIO DE LA MODIFICACIÓN ---
-  const [modoParaLlevar, setModoParaLlevar] = useState(false);
-  // --- FIN DE LA MODIFICACIÓN ---
+  const [modoParaLlevar, setModoParaLlevar] = useState(false)
 
   useEffect(() => {
     const fetchPlatos = async () => {
@@ -95,15 +95,13 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
       }
       return plato.CategoriaID === Number.parseInt(filterCategory)
     })
-    // Mostrar todos los platos, sin filtrar los que ya están en el pedido
     setFilteredPlatos(filtered)
   }, [searchTerm, filterCategory, platos, pedido])
 
-  // --- INICIO DE LA MODIFICACIÓN ---
   const addToOrder = (plato: PedidoItem) => {
     const esParaLlevar = modoParaLlevar;
-    const precioFinal = (esParaLlevar && plato.PrecioLlevar && Number(plato.PrecioLlevar) > 0) 
-      ? Number(plato.PrecioLlevar) 
+    const precioFinal = (esParaLlevar && plato.PrecioLlevar && Number(plato.PrecioLlevar) > 0)
+      ? Number(plato.PrecioLlevar)
       : Number(plato.Precio);
 
     const existingItem = orderItems.find((orderItem) => orderItem.PlatoID === plato.PlatoID && orderItem.ParaLlevar === esParaLlevar);
@@ -112,13 +110,13 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
       setOrderItems(
         orderItems.map((orderItem: PedidoItem) =>
           orderItem.PlatoID === plato.PlatoID && orderItem.ParaLlevar === esParaLlevar
-            ? { ...orderItem, Cantidad: orderItem.Cantidad + 1 } 
+            ? { ...orderItem, Cantidad: orderItem.Cantidad + 1 }
             : orderItem,
         ),
       )
     } else {
-      setOrderItems([...orderItems, { 
-        ...plato, 
+      setOrderItems([...orderItems, {
+        ...plato,
         Cantidad: 1,
         Descripcion: plato.Descripcion || "Plato sin descripción",
         Precio: precioFinal as any,
@@ -126,7 +124,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
       }])
     }
   }
-  // --- FIN DE LA MODIFICACIÓN ---
 
   const removeFromOrder = (plato: PedidoItem) => {
     const existingItem = orderItems.find((orderItem) => orderItem.PlatoID === plato.PlatoID && orderItem.ParaLlevar === plato.ParaLlevar)
@@ -134,7 +131,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
       setOrderItems(
         orderItems.map((orderItem) =>
           orderItem.PlatoID === plato.PlatoID && orderItem.ParaLlevar === plato.ParaLlevar
-            ? { ...orderItem, Cantidad: orderItem.Cantidad - 1 } 
+            ? { ...orderItem, Cantidad: orderItem.Cantidad - 1 }
             : orderItem,
         ),
       )
@@ -143,13 +140,10 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
     }
   }
 
-  // --- INICIO DE LA MODIFICACIÓN ---
   const handleToggleModoParaLlevar = () => {
     setModoParaLlevar(!modoParaLlevar);
-    // Limpiar el carrito cuando cambie el modo para evitar confusiones
     setOrderItems([]);
   };
-  // --- FIN DE LA MODIFICACIÓN ---
 
   if (isLoading) {
     return (
@@ -170,7 +164,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
           Agregar plato
         </Button>
       </DialogTrigger>
-      <DialogContent 
+      <DialogContent
         className="max-w-6xl w-[95vw] h-[85vh] p-0 gap-0 overflow-hidden"
         onOpenAutoFocus={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
@@ -225,7 +219,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                       {modoParaLlevar ? "Precios con Taper aplicados" : "Precios normales"}
                     </span>
                   </div>
-                  <Switch 
+                  <Switch
                     id="modo-para-llevar-modal"
                     checked={modoParaLlevar}
                     onCheckedChange={handleToggleModoParaLlevar}
@@ -236,7 +230,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
               <div className="flex-1 min-h-0 overflow-y-auto">
                 <div className="p-4 sm:p-6 pb-20 lg:pb-8">
                   <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
-                    {/* --- INICIO DE LA MODIFICACIÓN --- */}
                     {filteredPlatos.map((item) => {
                       const esParaLlevar = modoParaLlevar;
                       const precioFinal = (esParaLlevar && item.PrecioLlevar && Number(item.PrecioLlevar) > 0)
@@ -247,8 +240,9 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                         <Card
                           key={item.PlatoID}
                           className="cursor-pointer hover:shadow-md transition-all bg-white hover:bg-gray-50 active:scale-95 border border-gray-200 flex-shrink-0 flex flex-col"
+                          style={{ backgroundColor: item.categorias?.Color || '#FFFFFF' }}
                         >
-                          <CardContent 
+                          <CardContent
                             className="p-2 sm:p-3 text-center flex-1 flex flex-col justify-center"
                             onClick={() => addToOrder(item)}
                           >
@@ -272,7 +266,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                         </Card>
                       );
                     })}
-                    {/* --- FIN DE LA MODIFICACIÓN --- */}
                   </div>
                 </div>
               </div>
@@ -317,7 +310,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                   <div className="flex-1 min-h-0 overflow-y-auto">
                     <div className="p-4">
                       <div className="space-y-3">
-                        {/* --- INICIO DE LA MODIFICACIÓN --- */}
                         {orderItems.map((item) => (
                           <div key={`${item.PlatoID}-${item.ParaLlevar}`} className="bg-gray-50 p-3 rounded-lg border">
                             <div className="flex justify-between items-start gap-3">
@@ -349,7 +341,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                             </div>
                           </div>
                         ))}
-                        {/* --- FIN DE LA MODIFICACIÓN --- */}
                       </div>
                     </div>
                   </div>
@@ -391,26 +382,19 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                             if (!pedido) return;
                             try {
                               setIsSubmitting(true);
-                              // --- INICIO DE LA MODIFICACIÓN ---
                               for (const item of orderItems) {
                                 await addPlatoToPedido(item.PlatoID, item.Cantidad, !!item.ParaLlevar);
                               }
-                              // --- FIN DE LA MODIFICACIÓN ---
                               const detallesParaComanda = orderItems.map(item => ({
                                 PlatoID: item.PlatoID,
                                 Cantidad: item.Cantidad,
                                 Descripcion: `${item.Descripcion || "Plato sin descripción"}${item.ParaLlevar ? ' (P/LLEVAR)' : ''}`
                               }));
 
-                              console.log("🖨️ Creando comanda para nuevos platos (mobile):", detallesParaComanda);
-                              console.log("📝 Comentario para nuevos platos (mobile):", comentario);
-
-                              // Determinar el tipo de comanda basado en los platos agregados
                               let comentarioFinal = comentario;
                               const platosParaLlevar = orderItems.filter(item => item.ParaLlevar);
                               const platosParaMesa = orderItems.filter(item => !item.ParaLlevar);
-                              
-                              // Si hay platos para llevar, agregar indicación
+
                               if (platosParaLlevar.length > 0) {
                                 comentarioFinal = comentario ? `Para llevar | ${comentario}` : "Para llevar";
                               }
@@ -429,13 +413,13 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                                   ComandaID: comandaData.ComandaID,
                                   Comentario: comandaData.Comentario
                                 });
-                                
+
                                 await onPedidoUpdated();
                                 setOrderItems([]);
                                 setComentario("");
                                 setShowMobileCart(false);
                                 setDialogOpen(false);
-                                
+
                                 alert(`¡Platos agregados! Comanda #${comandaData.ComandaID} enviada a cocina para imprimir solo los nuevos platos.`);
                               } else {
                                 const errorData = await comandaResponse.json();
@@ -459,7 +443,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
               </div>
             )}
 
-            {/* Resumen - Solo visible en desktop */}
             <div className="hidden lg:flex lg:w-1/3 flex-col bg-white border-l min-h-0 overflow-hidden">
               <div className="bg-slate-700 text-white px-4 py-3 flex-shrink-0">
                 <div className="flex items-center gap-3">
@@ -478,7 +461,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                     <p className="text-gray-500 text-center py-8">No hay productos en el pedido</p>
                   ) : (
                     <div className="space-y-3">
-                      {/* --- INICIO DE LA MODIFICACIÓN --- */}
                       {orderItems.map((item) => (
                         <div key={`${item.PlatoID}-${item.ParaLlevar}`} className="bg-gray-50 p-3 rounded-lg border">
                           <div className="flex justify-between items-start gap-3">
@@ -510,7 +492,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                           </div>
                         </div>
                       ))}
-                      {/* --- FIN DE LA MODIFICACIÓN --- */}
                     </div>
                   )}
                 </div>
@@ -554,26 +535,19 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                           if (!pedido) return;
                           try {
                             setIsSubmitting(true);
-                            // --- INICIO DE LA MODIFICACIÓN ---
                             for (const item of orderItems) {
                               await addPlatoToPedido(item.PlatoID, item.Cantidad, !!item.ParaLlevar);
                             }
-                            // --- FIN DE LA MODIFICACIÓN ---
                             const detallesParaComanda = orderItems.map(item => ({
                               PlatoID: item.PlatoID,
                               Cantidad: item.Cantidad,
                               Descripcion: `${item.Descripcion || "Plato sin descripción"}${item.ParaLlevar ? ' (P/LLEVAR)' : ''}`
                             }));
 
-                            console.log("🖨️ Creando comanda para nuevos platos:", detallesParaComanda);
-                            console.log("📝 Comentario para nuevos platos:", comentario);
-
-                            // Determinar el tipo de comanda basado en los platos agregados
                             let comentarioFinal = comentario;
                             const platosParaLlevar = orderItems.filter(item => item.ParaLlevar);
                             const platosParaMesa = orderItems.filter(item => !item.ParaLlevar);
-                            
-                            // Si hay platos para llevar, agregar indicación
+
                             if (platosParaLlevar.length > 0) {
                               comentarioFinal = comentario ? `Para llevar | ${comentario}` : "Para llevar";
                             }
@@ -593,12 +567,12 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                                 ComandaID: comandaData.ComandaID,
                                 Comentario: comandaData.Comentario
                               });
-                              
+
                               await onPedidoUpdated();
                               setOrderItems([]);
                               setComentario("");
                               setDialogOpen(false);
-                              
+
                               alert(`¡Platos agregados! Comanda #${comandaData.ComandaID} enviada a cocina para imprimir solo los nuevos platos.`);
                             } else {
                               const errorData = await comandaResponse.json();

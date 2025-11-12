@@ -1,9 +1,18 @@
 import prisma from "@/lib/db";
+import { color } from "framer-motion";
 import { NextResponse, NextRequest } from "next/server";
 import * as yup from "yup";
 
 export async function GET(request: Request) {
-  const platos = await prisma.platos.findMany();
+  const platos = await prisma.platos.findMany({
+    include: {
+      categorias: {
+        select: {
+          Color: true,
+        }
+      }
+    }
+  });
 
   if (!platos) {
     return NextResponse.json(

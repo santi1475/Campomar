@@ -10,7 +10,7 @@ export function cn(...inputs: ClassValue[]) {
 import type { platos } from "@prisma/client";
 
 export const ordenarPlatosPorCategoria = <T extends Pick<platos, 'CategoriaID'>>(lista: T[]): T[] => {
-  const ordenCategorias = [4, 3, 2, 1, 5];
+  const ordenCategorias = [4, 3, 2, 6, 7, 1, 8];
   return [...lista].sort((a, b) => {
     const indexA = ordenCategorias.indexOf(a.CategoriaID);
     const indexB = ordenCategorias.indexOf(b.CategoriaID);

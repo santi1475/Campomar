@@ -19,6 +19,9 @@ interface MesaProps {
 
 interface PedidoItem extends platos {
   Cantidad: number
+  categorias?: {
+    Color: string | null
+  }
 }
 
 export default function MesaLibre({ mesas }: MesaProps) {
@@ -45,9 +48,9 @@ export default function MesaLibre({ mesas }: MesaProps) {
         if (!response.ok) {
           throw new Error("Error al obtener los platos")
         }
-  const data = await response.json()
-  const ordenados = ordenarPlatosPorCategoria(data as platos[]) as platos[]
-  setPlatos(ordenados as PedidoItem[])
+        const data = await response.json()
+        const ordenados = ordenarPlatosPorCategoria(data as platos[]) as platos[]
+        setPlatos(ordenados as PedidoItem[])
       } catch (error) {
         console.error(error)
       } finally {
@@ -252,8 +255,9 @@ export default function MesaLibre({ mesas }: MesaProps) {
               {filteredPlatos.map((item) => (
                 <Card
                   key={item.PlatoID}
-                  className="cursor-pointer hover:shadow-md transition-all bg-gray-100 hover:bg-gray-200 active:scale-95 h-24"
+                  className="cursor-pointer hover:shadow-md transition-all active:scale-95 h-24"
                   onClick={() => addToOrder(item)}
+                  style={{ backgroundColor: item.categorias?.Color || '#FFFFFF' }}
                 >
                   <CardContent className="p-2 text-center h-full flex flex-col justify-center">
                     <h3 className="font-medium text-gray-900 mb-1 text-xs leading-tight line-clamp-2">
@@ -432,8 +436,9 @@ export default function MesaLibre({ mesas }: MesaProps) {
                 {filteredPlatos.map((item) => (
                   <Card
                     key={item.PlatoID}
-                    className="cursor-pointer hover:shadow-md transition-all bg-gray-100 hover:bg-gray-200 active:scale-95 h-28"
+                    className="cursor-pointer hover:shadow-md transition-all active:scale-95 h-28"
                     onClick={() => addToOrder(item)}
+                    style={{ backgroundColor: item.categorias?.Color || '#FFFFFF' }}
                   >
                     <CardContent className="p-3 text-center h-full flex flex-col justify-center">
                       <h3 className="font-medium text-gray-900 mb-2 text-sm leading-tight line-clamp-2">
@@ -553,6 +558,6 @@ export default function MesaLibre({ mesas }: MesaProps) {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   )
 }

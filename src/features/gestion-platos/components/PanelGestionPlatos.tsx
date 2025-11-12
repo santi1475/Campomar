@@ -16,11 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ordenarPlatosPorCategoria } from "@/lib/utils"
 
-// Definimos un tipo local para manejar los platos en el cliente sin usar 'Decimal' (incluye PrecioLlevar)
 type PlatoCliente = Omit<platos, 'Precio' | 'PrecioLlevar'> & {
   Precio: number | null;
   PrecioLlevar: number | null;
+  categorias?: {
+    Color: string | null;
+  };
 };
 
 export const GestionPlatos = () => {
@@ -45,11 +48,11 @@ export const GestionPlatos = () => {
         const response = await fetch("/api/platos", { method: "GET" });
         if (!response.ok) throw new Error("Error al obtener los platos");
         const data: platos[] = await response.json();
-        // Convertimos el precio de Decimal a número al recibir los datos
         const platosConNumeros = data.map(plato => ({
           ...plato,
           Precio: plato.Precio ? Number(plato.Precio) : null,
           PrecioLlevar: plato.PrecioLlevar ? Number(plato.PrecioLlevar) : 0,
+          categorias: (plato as any).categorias || { Color: null },
         }));
         setDishes(platosConNumeros);
       } catch (error) {
@@ -107,7 +110,7 @@ export const GestionPlatos = () => {
         const updatedPlato = await response.json();
         setDishes((prevDishes) =>
           prevDishes.map((dish) =>
-            dish.PlatoID === updatedPlato.PlatoID 
+            dish.PlatoID === updatedPlato.PlatoID
               ? { ...updatedPlato, Precio: Number(updatedPlato.Precio), PrecioLlevar: Number(updatedPlato.PrecioLlevar || 0) }
               : dish
           )
@@ -134,10 +137,12 @@ export const GestionPlatos = () => {
   };
 
   const handleSelectDish = (dish: PlatoCliente) => setEditingDish(dish);
-
-  const filteredDishes = dishes.filter((dish) =>
+  const platosFiltrados = dishes.filter((dish) =>
     dish.Descripcion?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const filteredDishes = ordenarPlatosPorCategoria(platosFiltrados);
+
 
 
   return (
@@ -277,7 +282,10 @@ export const GestionPlatos = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredDishes.map((dish) => (
-              <Card key={dish.PlatoID} className="hover:shadow-md transition-shadow">
+              <Card
+                key={dish.PlatoID} className="hover:shadow-md transition-shadow"
+                style={{ borderLeft: `5px solid ${dish.categorias?.Color || '#E5E7EB'}` }}
+              >
                 <CardContent className="p-4">
                   <h3 className="text-lg font-semibold mb-2">
                     {dish.Descripcion}

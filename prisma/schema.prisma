@@ -89,6 +89,7 @@ model categorias {
   CategoriaID Int      @id @default(autoincrement())
   Descripcion String   @db.VarChar(255)
   Activo      Boolean? @default(true)
+  Color       String?  @db.VarChar(7)
   platos      platos[]
 }
 
