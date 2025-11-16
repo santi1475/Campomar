@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Plus, Search, Trash } from "lucide-react"
+import { Search, Trash } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { ordenarPlatosPorCategoria } from "@/lib/utils"
 
@@ -23,10 +23,10 @@ interface PedidoDetalle {
     descripcionPlato: string
     Cantidad: number
     PrecioUnitario: number
-    CategoriaID: number;
+    CategoriaID: number
     categorias?: {
-        Color: string | null;
-    };
+        Color: string | null
+    }
 }
 
 interface Props {
@@ -44,7 +44,14 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
     const [search, setSearch] = useState("")
     const [categoria, setCategoria] = useState("")
     const [platos, setPlatos] = useState<
-        { PlatoID: number; Descripcion: string; Precio: number; PrecioLlevar?: number; CategoriaID: number, categorias?: { Color: string | null } }[]
+        {
+            PlatoID: number
+            Descripcion: string
+            Precio: number
+            PrecioLlevar?: number
+            CategoriaID: number
+            categorias?: { Color: string | null }
+        }[]
     >([])
     const [draft, setDraft] = useState<
         { PlatoID: number; Descripcion: string; Precio: number; Cantidad: number; ParaLlevar: boolean }[]
@@ -72,19 +79,21 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
         }
     }, [open])
 
-    const filtrados = platos
-        .filter(p => {
-            const texto = p.Descripcion.toLowerCase().includes(search.toLowerCase());
-            const catOk = !categoria || categoria === 'todos' || p.CategoriaID === Number(categoria);
-            return texto && catOk;
-        })
+    const filtrados = platos.filter((p) => {
+        const texto = p.Descripcion.toLowerCase().includes(search.toLowerCase())
+        const catOk = !categoria || categoria === "todos" || p.CategoriaID === Number(categoria)
+        return texto && catOk
+    })
 
-    const platosOrdenados = ordenarPlatosPorCategoria(filtrados);
+    const platosOrdenados = ordenarPlatosPorCategoria(filtrados)
 
     const add = (pl: any) => {
         const esParaLlevar = modoParaLlevar
-        const precio =
-            !esParaLlevar ? Number(pl.Precio) : (pl.PrecioLlevar && Number(pl.PrecioLlevar) > 0 ? Number(pl.PrecioLlevar) : Number(pl.Precio))
+        const precio = !esParaLlevar
+            ? Number(pl.Precio)
+            : pl.PrecioLlevar && Number(pl.PrecioLlevar) > 0
+                ? Number(pl.PrecioLlevar)
+                : Number(pl.Precio)
         setDraft((prev) => [
             ...prev,
             {
@@ -116,17 +125,17 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
         setIsSubmitting(true)
         try {
             // Determinar si el cliente tiene taper (usa precio normal en vez del precio para llevar)
-            const platosConTaper = draft.filter(d => {
-                const plato = platos.find(p => p.PlatoID === d.PlatoID);
-                const deberiaUsarPrecioLlevar = plato?.PrecioLlevar && Number(plato.PrecioLlevar) > 0;
-                const usaPrecioNormal = plato && d.Precio === Number(plato.Precio);
-                return deberiaUsarPrecioLlevar && usaPrecioNormal;
-            });
+            const platosConTaper = draft.filter((d) => {
+                const plato = platos.find((p) => p.PlatoID === d.PlatoID)
+                const deberiaUsarPrecioLlevar = plato?.PrecioLlevar && Number(plato.PrecioLlevar) > 0
+                const usaPrecioNormal = plato && d.Precio === Number(plato.Precio)
+                return deberiaUsarPrecioLlevar && usaPrecioNormal
+            })
 
-            let comentarioFinal = comentario;
+            let comentarioFinal = comentario
             // Si hay platos con precio normal, indica que el cliente tiene taper
             if (platosConTaper.length > 0) {
-                comentarioFinal = comentario ? `Cliente con taper | ${comentario}` : "Cliente con taper";
+                comentarioFinal = comentario ? `Cliente con taper | ${comentario}` : "Cliente con taper"
             }
             await onAddPlatos(
                 draft.map((d) => ({
@@ -139,35 +148,37 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                 comentarioFinal,
             )
 
-            const detallesParaComanda = draft.map(item => ({
+            const detallesParaComanda = draft.map((item) => ({
                 PlatoID: item.PlatoID,
                 Cantidad: item.Cantidad,
-                Descripcion: `${item.Descripcion}${item.ParaLlevar ? ' (P/LLEVAR)' : ''}`
-            }));
+                Descripcion: `${item.Descripcion}${item.ParaLlevar ? " (P/LLEVAR)" : ""}`,
+            }))
 
             const requestBody = {
                 pedidoID: pedidoId,
                 comentario: comentarioFinal,
-                detalles: detallesParaComanda
-            };
+                detalles: detallesParaComanda,
+            }
 
             const comandaResponse = await fetch("/api/comanda-cocina", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(requestBody),
-            });
+            })
 
             if (comandaResponse.ok) {
-                const comandaData = await comandaResponse.json();
+                const comandaData = await comandaResponse.json()
                 console.log("✅ Comanda para llevar creada exitosamente:", {
                     ComandaID: comandaData.ComandaID,
-                    Comentario: comandaData.Comentario
-                });
+                    Comentario: comandaData.Comentario,
+                })
 
-                alert(`¡Platos agregados! Comanda #${comandaData.ComandaID} enviada a cocina para imprimir solo los nuevos platos.`);
+                alert(
+                    `¡Platos agregados! Comanda #${comandaData.ComandaID} enviada a cocina para imprimir solo los nuevos platos.`,
+                )
             } else {
-                const errorData = await comandaResponse.json();
-                alert(`Error al crear la comanda: ${errorData.message}`);
+                const errorData = await comandaResponse.json()
+                alert(`Error al crear la comanda: ${errorData.message}`)
             }
 
             setDraft([])
@@ -186,29 +197,29 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] lg:h-[85vh] p-0 overflow-hidden flex flex-col">
-                <DialogHeader className="p-3 lg:p-4 border-b shrink-0">
-                    <DialogTitle className="text-base lg:text-lg">Agregar platos Para Llevar</DialogTitle>
-                    <DialogDescription className="text-xs lg:text-sm">
+                <DialogHeader className="p-3 sm:p-4 border-b shrink-0">
+                    <DialogTitle className="text-base sm:text-lg">Agregar platos Para Llevar</DialogTitle>
+                    <DialogDescription className="text-xs sm:text-sm">
                         Selecciona nuevos platos para este pedido.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
                     <div className="flex-1 flex flex-col border-b lg:border-b-0 lg:border-r min-h-[40vh] lg:min-h-0">
-                        <div className="p-3 lg:p-4 space-y-2 lg:space-y-3 border-b bg-gray-50 shrink-0">
-                            <div className="flex gap-2 lg:gap-3 flex-col sm:flex-row">
+                        <div className="p-2.5 sm:p-4 space-y-2.5 sm:space-y-3 border-b bg-gray-50 shrink-0">
+                            <div className="flex gap-2 sm:gap-3 flex-col sm:flex-row">
                                 <div className="relative flex-1">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                     <Input
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
                                         placeholder="Buscar..."
-                                        className="pl-9 h-9 text-sm"
+                                        className="pl-9 h-10 text-sm"
                                     />
                                 </div>
                                 <select
                                     value={categoria}
                                     onChange={(e) => setCategoria(e.target.value)}
-                                    className="border rounded px-3 py-2 text-sm h-9"
+                                    className="border rounded px-3 py-2 text-sm h-10 bg-white"
                                 >
                                     <option value="">Todas</option>
                                     <option value="todos">Todas</option>
@@ -218,58 +229,54 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                                     <option value="4">Caldo</option>
                                 </select>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
-                                <div className="flex items-center gap-3">
-                                    <Label htmlFor="modo-para-llevar" className="text-sm font-medium">
+                            <div className="flex items-center justify-between p-2.5 sm:p-3 bg-white rounded-lg border">
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                    <Label htmlFor="modo-para-llevar" className="text-xs sm:text-sm font-medium">
                                         Modo Para Llevar
                                     </Label>
                                     <span className="text-xs text-gray-500">
                                         {modoParaLlevar ? "Precios Para Llevar" : "Precios sin Taper"}
                                     </span>
                                 </div>
-                                <Switch
-                                    id="modo-para-llevar"
-                                    checked={modoParaLlevar}
-                                    onCheckedChange={handleToggleModoParaLlevar}
-                                />
+                                <Switch id="modo-para-llevar" checked={modoParaLlevar} onCheckedChange={handleToggleModoParaLlevar} />
                             </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-2 lg:p-3 grid gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 auto-rows-min">
+                        <div className="flex-1 overflow-y-auto p-2 sm:p-3 grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 auto-rows-max">
                             {platosOrdenados.map((pl) => {
                                 const esParaLlevar = modoParaLlevar
-                                const precioFinal =
-                                    !esParaLlevar
-                                        ? Number(pl.Precio)
-                                        : (pl.PrecioLlevar && Number(pl.PrecioLlevar) > 0 ? Number(pl.PrecioLlevar) : Number(pl.Precio))
+                                const precioFinal = !esParaLlevar
+                                    ? Number(pl.Precio)
+                                    : pl.PrecioLlevar && Number(pl.PrecioLlevar) > 0
+                                        ? Number(pl.PrecioLlevar)
+                                        : Number(pl.Precio)
                                 return (
                                     <Card
                                         key={pl.PlatoID}
-                                        className="cursor-pointer hover:shadow-md transition-shadow"
-                                        style={{ backgroundColor: pl.categorias?.Color || '#FFFFFF' }}
+                                        className="cursor-pointer hover:shadow-md transition-shadow h-full"
+                                        style={{ backgroundColor: pl.categorias?.Color || "#FFFFFF" }}
                                     >
                                         <CardContent
-                                            className="p-2 lg:p-3 flex flex-col items-center text-center gap-1"
+                                            className="p-3 sm:p-4 flex flex-col items-center text-center gap-2 sm:gap-2.5 h-full justify-center"
                                             onClick={() => add(pl)}
                                         >
-                                            <span className="text-xs lg:text-sm font-medium line-clamp-2 break-words w-full min-h-[2.5rem] flex items-center justify-center">
+                                            <span className="text-sm sm:text-base font-medium line-clamp-3 break-words w-full min-h-[4rem] flex items-center justify-center">
                                                 {pl.Descripcion}
                                             </span>
-                                            <div className="flex flex-col items-center gap-1">
-                                                <span className="text-sm lg:text-base font-semibold text-blue-600">
+                                            <div className="flex flex-col items-center gap-1.5 w-full">
+                                                <span className="text-lg sm:text-2xl font-semibold text-blue-600">
                                                     S/. {precioFinal.toFixed(2)}
                                                 </span>
                                                 {!esParaLlevar ? (
-                                                    <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                                                    <span className="text-xs sm:text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded whitespace-nowrap">
                                                         Sin Taper
                                                     </span>
                                                 ) : esParaLlevar && pl.PrecioLlevar && Number(pl.PrecioLlevar) > 0 ? (
-                                                    <span className="text-[10px] text-orange-600 font-medium bg-orange-100 px-1.5 py-0.5 rounded">
+                                                    <span className="text-xs sm:text-sm text-orange-600 font-medium bg-orange-100 px-2 py-1 rounded whitespace-nowrap">
                                                         Con Taper
                                                     </span>
                                                 ) : null}
                                             </div>
                                         </CardContent>
-
                                     </Card>
                                 )
                             })}
@@ -279,19 +286,21 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                         </div>
                     </div>
                     <div className="w-full lg:w-80 flex flex-col min-h-[35vh] lg:min-h-0 lg:max-h-full">
-                        <div className="p-3 lg:p-4 border-b bg-gray-50 flex items-center justify-between shrink-0">
-                            <span className="font-semibold text-sm">Nuevos platos ({draft.reduce((a, i) => a + i.Cantidad, 0)})</span>
+                        <div className="p-2.5 sm:p-4 border-b bg-gray-50 flex items-center justify-between shrink-0">
+                            <span className="font-semibold text-sm sm:text-base">
+                                Nuevos platos ({draft.reduce((a, i) => a + i.Cantidad, 0)})
+                            </span>
                             {draft.length > 0 && (
                                 <Button size="sm" variant="ghost" onClick={() => setDraft([])} className="text-red-600 h-7 text-xs">
                                     Limpiar
                                 </Button>
                             )}
                         </div>
-                        <div className="flex-1 overflow-y-auto p-2 lg:p-3 space-y-2 lg:space-y-3">
+                        <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-2.5 sm:space-y-3">
                             {draft.map((item) => (
-                                <div key={item.PlatoID} className="border rounded p-2 text-xs space-y-1.5 bg-white shadow-sm">
+                                <div key={item.PlatoID} className="border rounded p-2.5 sm:p-3 text-xs space-y-1.5 bg-white shadow-sm">
                                     <div className="flex justify-between items-start gap-2">
-                                        <span className="font-medium flex-1 line-clamp-2 text-xs lg:text-sm">{item.Descripcion}</span>
+                                        <span className="font-medium flex-1 line-clamp-2 text-xs sm:text-sm">{item.Descripcion}</span>
                                         <Button
                                             size="sm"
                                             variant="ghost"
@@ -331,9 +340,9 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
                                 <p className="text-xs text-muted-foreground text-center py-4">No has seleccionado platos nuevos.</p>
                             )}
                         </div>
-                        <div className="p-3 lg:p-4 border-t space-y-2 lg:space-y-3 shrink-0 bg-white">
+                        <div className="p-2.5 sm:p-4 border-t space-y-2.5 sm:space-y-3 shrink-0 bg-white">
                             <div>
-                                <label className="text-xs font-medium mb-1 block">Comentario (opcional)</label>
+                                <label className="text-xs font-medium mb-1.5 block">Comentario (opcional)</label>
                                 <Textarea
                                     rows={2}
                                     value={comentario}

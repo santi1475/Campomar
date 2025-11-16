@@ -174,9 +174,6 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
             <div className="flex items-center justify-between">
               <div>
                 <DialogTitle className="text-lg sm:text-xl">Agregar plato</DialogTitle>
-                <DialogDescription className="text-sm sm:text-base mt-1">
-                  Añade platos a la mesa, recuerda que puedes modificar la cantidad de cada plato en la mesa.
-                </DialogDescription>
               </div>
             </div>
           </DialogHeader>
