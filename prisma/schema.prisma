@@ -3,9 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 
@@ -19,6 +17,7 @@ model empleados {
   tipoempleado   tipoempleado? @relation(fields: [TipoEmpleadoID], references: [TipoEmpleadoID], onDelete: NoAction, onUpdate: NoAction, map: "empleados_ibfk_1")
   pedidos        pedidos[]
   auditoria      auditoria[]
+  auditoria_eliminaciones auditoria_eliminaciones[]
 }
 
 model pedidos {
@@ -35,6 +34,7 @@ model pedidos {
   empleados      empleados        @relation(fields: [EmpleadoID], references: [EmpleadoID], onDelete: NoAction, onUpdate: NoAction)
   tipopago       tipopago?        @relation(fields: [TipoPago], references: [TipoPagoID], onDelete: NoAction, onUpdate: NoAction)
   comandas_cocina  comandas_cocina[]
+  auditoria_eliminaciones auditoria_eliminaciones[]
 }
 
 model platos {
@@ -61,6 +61,7 @@ model mesas {
   Estado       String         @default("Libre") @db.VarChar(10)
   Activo       Boolean?       @default(true)
   pedido_mesas pedido_mesas[]
+  auditoria_eliminaciones auditoria_eliminaciones[]
 }
 
 model pedido_mesas {
@@ -112,16 +113,36 @@ model comandas_cocina {
 
 model auditoria {
   id                Int      @id @default(autoincrement())
-  accion            String   @db.VarChar(50) // "CANCELACION_PEDIDO", "MODIFICACION_PRECIO", etc.
+  accion            String   @db.VarChar(50) 
   pedidoId          Int
-  usuarioId         Int // Quién realizó la acción (el admin que cancela)
-  detalles          Json // Snapshot del pedido (platos, total, mozo original)
+  usuarioId         Int 
+  detalles          Json 
   fechaCreacion     DateTime
   fechaAccion       DateTime @default(now())
-  tiempoTranscurrido Int // En minutos
-  nivelAlerta       String   @db.VarChar(20) // "BAJO", "MEDIO", "ALTO"
+  tiempoTranscurrido Int 
+  nivelAlerta       String   @db.VarChar(20) 
   justificacion     String?  @db.Text
 
-  // Relación con el usuario que realizó la acción
   empleado empleados @relation(fields: [usuarioId], references: [EmpleadoID])
+}
+
+model auditoria_eliminaciones {
+  ID                Int      @id @default(autoincrement())
+  Fecha             DateTime @default(now()) @db.Timestamptz(6)
+
+  EmpleadoID        Int
+  PedidoID          Int
+  MesaID            Int?   
+  
+  DescripcionPlato  String   @db.VarChar(255)
+  CantidadEliminada Int
+  PrecioUnitario    Decimal  @db.Decimal(10, 2)
+  TotalPerdido      Decimal  @db.Decimal(10, 2)
+
+  EstabaImpreso     Boolean  
+  TipoAccion        String   @db.VarChar(50) 
+  
+  empleado empleados @relation(fields: [EmpleadoID], references: [EmpleadoID])
+  pedido   pedidos   @relation(fields: [PedidoID], references: [PedidoID])
+  mesa     mesas?    @relation(fields: [MesaID], references: [MesaID])
 }

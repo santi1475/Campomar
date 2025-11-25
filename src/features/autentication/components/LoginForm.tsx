@@ -72,7 +72,9 @@ const LoginForm = () => {
 
       setEmpleado(empleado);
 
-      if (empleado.TipoEmpleadoID === 2) {
+      if (empleado.TipoEmpleadoID === 3) {
+        router.push("/superadmin");
+      } else if (empleado.TipoEmpleadoID === 2) {
         router.push("/admin");
       } else {
         router.push("/empleado");
