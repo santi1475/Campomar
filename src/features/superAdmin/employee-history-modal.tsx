@@ -1,7 +1,11 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Loader2 } from "lucide-react"
 
 interface HistoryEvent {
     id: string
@@ -12,82 +16,6 @@ interface HistoryEvent {
     item: string
     amount: number
     risk: "high" | "medium" | "low"
-}
-
-// Mock history data generator based on employee ID
-const getMockHistory = (employeeId: string): HistoryEvent[] => {
-    // Return different data for different employees to make it realistic
-    if (employeeId === "1") {
-        // Carlos (Low trust)
-        return [
-            {
-                id: "1",
-                date: "23/11/2023",
-                time: "14:30",
-                table: "M-4",
-                action: "deletion",
-                item: "Lomo Saltado",
-                amount: 45.0,
-                risk: "high",
-            },
-            {
-                id: "2",
-                date: "23/11/2023",
-                time: "13:15",
-                table: "M-2",
-                action: "deletion",
-                item: "Ceviche Clásico",
-                amount: 38.0,
-                risk: "high",
-            },
-            {
-                id: "3",
-                date: "22/11/2023",
-                time: "20:10",
-                table: "T-8",
-                action: "correction",
-                item: "Inca Kola 1L",
-                amount: 12.0,
-                risk: "medium",
-            },
-            {
-                id: "4",
-                date: "21/11/2023",
-                time: "19:45",
-                table: "M-5",
-                action: "deletion",
-                item: "Pisco Sour",
-                amount: 24.0,
-                risk: "high",
-            },
-        ]
-    }
-    if (employeeId === "2") {
-        // María (Medium trust)
-        return [
-            {
-                id: "1",
-                date: "23/11/2023",
-                time: "15:20",
-                table: "T-3",
-                action: "correction",
-                item: "Limonada Frozen",
-                amount: 15.0,
-                risk: "medium",
-            },
-            {
-                id: "2",
-                date: "20/11/2023",
-                time: "21:00",
-                table: "M-10",
-                action: "deletion",
-                item: "Arroz con Mariscos",
-                amount: 42.0,
-                risk: "high",
-            },
-        ]
-    }
-    return [] // José (High trust) - clean history
 }
 
 interface EmployeeHistoryModalProps {
@@ -103,13 +31,39 @@ interface EmployeeHistoryModalProps {
 }
 
 export function EmployeeHistoryModal({ employee, isOpen, onClose }: EmployeeHistoryModalProps) {
-    if (!employee) return null
+    const [history, setHistory] = useState<HistoryEvent[]>([])
+    const [loading, setLoading] = useState(false)
 
-    const history = getMockHistory(employee.id)
+    useEffect(() => {
+        if (isOpen && employee?.id) {
+            fetchHistory(employee.id)
+        } else {
+            setHistory([])
+        }
+    }, [isOpen, employee])
+
+    const fetchHistory = async (id: string) => {
+        setLoading(true)
+        try {
+            const res = await fetch(`/api/superAdmin/empleados/${id}/historial`)
+            if (res.ok) {
+                const data = await res.json()
+                setHistory(data)
+            } else {
+                console.error("Error al cargar historial")
+            }
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    if (!employee) return null
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
                 <DialogHeader>
                     <div className="flex items-center gap-4 mb-2">
                         <Avatar className="h-12 w-12">
@@ -128,57 +82,66 @@ export function EmployeeHistoryModal({ employee, isOpen, onClose }: EmployeeHist
                     </div>
                 </DialogHeader>
 
-                <div className="mt-4">
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-muted/50">
-                                    <TableHead>Fecha / Hora</TableHead>
-                                    <TableHead>Mesa</TableHead>
-                                    <TableHead>Acción</TableHead>
-                                    <TableHead>Ítem</TableHead>
-                                    <TableHead className="text-right">Monto</TableHead>
-                                    <TableHead className="text-center">Riesgo</TableHead>
+                <div className="mt-4 flex-1 overflow-auto border rounded-md">
+                    <Table>
+                        <TableHeader className="sticky top-0 bg-background z-10">
+                            <TableRow className="bg-muted/50">
+                                <TableHead>Fecha / Hora</TableHead>
+                                <TableHead>Mesa</TableHead>
+                                <TableHead>Acción</TableHead>
+                                <TableHead>Ítem</TableHead>
+                                <TableHead className="text-right">Monto</TableHead>
+                                <TableHead className="text-center">Riesgo</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center">
+                                        <div className="flex justify-center items-center gap-2 text-muted-foreground">
+                                            <Loader2 className="h-4 w-4 animate-spin" /> Cargando historial...
+                                        </div>
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {history.length > 0 ? (
-                                    history.map((event) => (
-                                        <TableRow key={event.id}>
-                                            <TableCell>
-                                                <div className="font-medium">{event.date}</div>
-                                                <div className="text-xs text-muted-foreground">{event.time}</div>
-                                            </TableCell>
-                                            <TableCell>{event.table}</TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline" className="font-normal">
-                                                    {event.action === "deletion" ? "Eliminación" : "Corrección"}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>{event.item}</TableCell>
-                                            <TableCell className="text-right">S/. {event.amount.toFixed(2)}</TableCell>
-                                            <TableCell className="text-center">
-                                                <Badge
-                                                    variant={event.risk === "high" ? "destructive" : "secondary"}
-                                                    className={
-                                                        event.risk === "medium" ? "bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/25" : ""
-                                                    }
-                                                >
-                                                    {event.risk === "high" ? "Alto" : event.risk === "medium" ? "Medio" : "Bajo"}
-                                                </Badge>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                                            No se encontraron incidentes recientes para este empleado.
+                            ) : history.length > 0 ? (
+                                history.map((event) => (
+                                    <TableRow key={event.id}>
+                                        <TableCell>
+                                            <div className="font-medium">{event.date}</div>
+                                            <div className="text-xs text-muted-foreground">{event.time}</div>
+                                        </TableCell>
+                                        <TableCell>{event.table}</TableCell>
+                                        <TableCell>
+                                            <Badge 
+                                                variant={event.action === "deletion" ? "destructive" : "secondary"} 
+                                                className="font-normal"
+                                            >
+                                                {event.action === "deletion" ? "Eliminación" : "Corrección"}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>{event.item}</TableCell>
+                                        <TableCell className="text-right">S/. {event.amount.toFixed(2)}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge
+                                                variant={event.risk === "high" ? "destructive" : "secondary"}
+                                                className={
+                                                    event.risk === "medium" ? "bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/25" : ""
+                                                }
+                                            >
+                                                {event.risk === "high" ? "Alto" : event.risk === "medium" ? "Medio" : "Bajo"}
+                                            </Badge>
                                         </TableCell>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                        No se encontraron incidentes sospechosos para este empleado.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
             </DialogContent>
         </Dialog>

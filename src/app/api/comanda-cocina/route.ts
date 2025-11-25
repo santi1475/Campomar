@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     let comentarioCompleto = comentario || "";
     let tipoComanda = "normal"; // normal, reimpresion, solo_nuevos
-    
+
     if (detalles && detalles.length > 0) {
       // Obtener las descripciones de los platos desde la base de datos
       const platosIds = detalles.map((d: any) => d.PlatoID);
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       // Solo el comentario del usuario (visible)
       comentarioCompleto = `${infoTecnica}${comentario ? ` | ${comentario}` : ""}`;
       tipoComanda = "nuevos_platos";
-      
+
       console.log("🖨️ Generando comanda para platos nuevos agregados:", {
         pedidoID,
         detallesRecibidos: detalles,
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       // para dar control total al usuario sobre cuándo imprimir
       comentarioCompleto = comentario || "";
       tipoComanda = "normal";
-      
+
       console.log("🖨️ Generando comanda normal (todos los platos) por solicitud del usuario:", {
         pedidoID,
         comentarioCompleto,
@@ -96,13 +96,29 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Nota: No se marcan platos como impresos automáticamente
-    // El usuario tiene control total sobre cuándo imprimir
+    if (tipoComanda === "normal") {
+      await prisma.detallepedidos.updateMany({
+        where: { PedidoID: pedidoID },
+        data: { Impreso: true }
+      });
+    } else if (detalles && detalles.length > 0) {
+
+      const platosIds = detalles.map((d: any) => d.PlatoID);
+      await prisma.detallepedidos.updateMany({
+        where: {
+          PedidoID: pedidoID,
+          PlatoID: { in: platosIds },
+          Impreso: false
+        },
+        data: { Impreso: true }
+      });
+    }
 
     return NextResponse.json({
       ...nuevaComanda,
       tipoComanda
     });
+
   } catch (error) {
     console.error("Error al crear la comanda:", error);
     return NextResponse.json({ message: "Error interno del servidor" }, { status: 500 });

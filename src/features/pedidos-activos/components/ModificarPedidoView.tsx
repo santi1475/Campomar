@@ -142,7 +142,10 @@ export const MesaOcupada = () => {
       const response = await fetch(`/api/detallepedidos/${detalleId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operacion: "decrementar" }),
+        body: JSON.stringify({
+          operacion: "decrementar",
+          usuarioId: empleado.EmpleadoID
+        }),
       })
       if (!response.ok) throw new Error("Error al decrementar la cantidad del plato")
       await fetchPedido();
@@ -162,7 +165,7 @@ export const MesaOcupada = () => {
       const response = await fetch(`/api/detallepedidos/${detalleId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuarioCanceladorId: empleado.EmpleadoID }),
+        body: JSON.stringify({ usuarioId: empleado.EmpleadoID }),
       })
       if (!response.ok) {
         const errorData = await response.json()

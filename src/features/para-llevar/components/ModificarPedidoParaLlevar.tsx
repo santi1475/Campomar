@@ -122,6 +122,7 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                 },
                 body: JSON.stringify({
                     operacion: "decrementar",
+                    usuarioId: empleado?.EmpleadoID
                 }),
             });
             if (!response.ok) {
@@ -150,6 +151,12 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
         try {
             const response = await fetch(`/api/detallepedidos/${detalleId}`, {
                 method: "DELETE",
+                headers: { 
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                    usuarioId: empleado?.EmpleadoID 
+                })
             });
             if (!response.ok) {
                 throw new Error("Error al eliminar el plato del pedido");
