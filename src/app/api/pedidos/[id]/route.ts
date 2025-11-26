@@ -198,6 +198,7 @@ export async function DELETE(request: Request, { params }: Segments) {
     };
 
     await prisma.$transaction(async (tx) => {
+      // 1. Crear registro de auditoría general de la cancelación
       await tx.auditoria.create({
         data: {
           accion: "CANCELACION_PEDIDO",
@@ -212,6 +213,7 @@ export async function DELETE(request: Request, { params }: Segments) {
         },
       });
 
+      // 2. Liberar las mesas
       const mesaIds = pedido.pedido_mesas
         .map((pm) => pm.MesaID)
         .filter((id): id is number => id !== null);
@@ -221,10 +223,17 @@ export async function DELETE(request: Request, { params }: Segments) {
           data: { Estado: "Libre" },
         });
       }
+      
 
+      // 3. Eliminar todos los registros dependientes
       await tx.comandas_cocina.deleteMany({ where: { PedidoID: pedidoId } });
       await tx.detallepedidos.deleteMany({ where: { PedidoID: pedidoId } });
       await tx.pedido_mesas.deleteMany({ where: { PedidoID: pedidoId } });
+
+      // 🔥 AGREGAR ESTA LÍNEA: Eliminar auditorías de eliminaciones previas de este pedido
+      await tx.auditoria_eliminaciones.deleteMany({ where: { PedidoID: pedidoId } });
+
+      // 4. Finalmente, eliminar el pedido
       await tx.pedidos.delete({ where: { PedidoID: pedidoId } });
     });
 
