@@ -617,11 +617,9 @@ export const MesaOcupada = () => {
 
                               <AlertDialog open={isYapeDialogOpen} onOpenChange={setIsYapeDialogOpen}>
                                 <AlertDialogContent>
-                                  <AlertDialogHeader>
+                                  <AlertDialogHeader className="flex items-center">
                                     <AlertDialogTitle>Pago con Yape</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Escanea el código QR para realizar el pago
-                                    </AlertDialogDescription>
+                                    <AlertDialogTitle className="text-blue-500">Numero 994942334</AlertDialogTitle>
                                   </AlertDialogHeader>
                                   <div className="flex flex-col items-center justify-center py-4">
                                     <div

@@ -151,11 +151,11 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
         try {
             const response = await fetch(`/api/detallepedidos/${detalleId}`, {
                 method: "DELETE",
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ 
-                    usuarioId: empleado?.EmpleadoID 
+                body: JSON.stringify({
+                    usuarioId: empleado?.EmpleadoID
                 })
             });
             if (!response.ok) {
@@ -597,11 +597,9 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                                                             {/* Diálogo para Yape */}
                                                             <AlertDialog open={isYapeDialogOpen} onOpenChange={setIsYapeDialogOpen}>
                                                                 <AlertDialogContent>
-                                                                    <AlertDialogHeader>
+                                                                    <AlertDialogHeader className="flex items-center">
                                                                         <AlertDialogTitle>Pago con Yape</AlertDialogTitle>
-                                                                        <AlertDialogDescription>
-                                                                            Escanea el código QR para realizar el pago
-                                                                        </AlertDialogDescription>
+                                                                        <AlertDialogTitle className="text-blue-500">Numero 994942334</AlertDialogTitle>
                                                                     </AlertDialogHeader>
                                                                     <div className="flex flex-col items-center justify-center py-4">
                                                                         <div
