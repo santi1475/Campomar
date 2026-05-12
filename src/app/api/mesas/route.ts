@@ -1,51 +1,30 @@
 import prisma from "@/lib/db";
-import { NextResponse, NextRequest } from "next/server";
-import * as yup from "yup";
+import { NextResponse } from "next/server";
+import { CreateMesaSchema, parseJson } from "@/app/api/_lib/dto";
 
-export async function GET(request: Request) {
-  const mesas = await prisma.mesas.findMany(
-    {
-      orderBy: {
-        NumeroMesa: "asc",
-      },
-    }
-  );
+export async function GET() {
+  const mesas = await prisma.mesas.findMany({
+    orderBy: { NumeroMesa: "asc" },
+  });
 
   if (!mesas) {
-    return NextResponse.json(
-      { message: "No se encontraron mesas" },
-      { status: 404 }
-    );
+    return NextResponse.json({ message: "No se encontraron mesas" }, { status: 404 });
   }
 
   return NextResponse.json(mesas);
 }
 
-const postSchema = yup.object({
-  NumeroMesa: yup.number().required(),
-  Estado: yup.string().required().oneOf(["Libre", "Ocupada"]),
-});
-
 export async function POST(request: Request) {
+  const parsed = await parseJson(request, CreateMesaSchema);
+  if (!parsed.ok) {
+    return NextResponse.json({ message: parsed.message, details: parsed.details }, { status: parsed.status });
+  }
   try {
-    let body: any;
-    try {
-      body = await request.json();
-    } catch (err) {
-      console.warn('POST /api/mesas: request.json() falló o body vacío/no JSON válido', err);
-      return NextResponse.json({ message: 'Se requiere un cuerpo JSON válido' }, { status: 400 });
-    }
-
-    const { NumeroMesa, Estado } = await postSchema.validate(body);
     const mesa = await prisma.mesas.create({
-      data: {
-        NumeroMesa,
-        Estado,
-      },
+      data: parsed.data,
     });
-
-    return NextResponse.json(mesa);
+    return NextResponse.json(mesa, { status: 201 });
   } catch (error) {
-    return NextResponse.json(error, { status: 400 });
+    return NextResponse.json({ message: "Error al crear mesa", error: String(error) }, { status: 500 });
   }
 }

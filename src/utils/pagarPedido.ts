@@ -1,11 +1,12 @@
-import { pedidos } from "@prisma/client";
+import { PedidoEstado, pedidos } from "@prisma/client";
 
 export const pagarPedido = async (pedido: pedidos) => {
   const response = await fetch(`/api/pedidos/${pedido.PedidoID}`, {
     method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      ...pedido,
-      Estado: false,
+      Estado: PedidoEstado.Cerrado,
+      TipoPago: pedido.TipoPago,
     }),
   });
 

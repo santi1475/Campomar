@@ -1,23 +1,22 @@
 import prisma from "@/lib/db";
 import { NextResponse, NextRequest } from "next/server";
-import * as yup from "yup";
+import { UpdatePlatoSchema, parseJson } from "@/app/api/_lib/dto";
 
 interface Segments {
-  params: {
-    id: string;
-  };
+  params: { id: string };
 }
 
-export async function GET(request: Request, { params }: Segments) {
-  const { id } = params;
+export async function GET(_request: NextRequest, { params }: Segments) {
+  const platoId = Number.parseInt(params.id, 10);
+  if (!Number.isFinite(platoId)) {
+    return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+  }
 
-  const plato = await prisma.platos.findFirst({
-    where: { PlatoID: parseInt(id) },
-  });
+  const plato = await prisma.platos.findFirst({ where: { PlatoID: platoId } });
 
   if (!plato) {
     return NextResponse.json(
-      { message: `Dish with id ${id} not found` },
+      { message: `Dish with id ${params.id} not found` },
       { status: 404 }
     );
   }
@@ -25,65 +24,59 @@ export async function GET(request: Request, { params }: Segments) {
   return NextResponse.json(plato);
 }
 
-const putSchema = yup.object({
-  Descripcion: yup.string().required(),
-  Precio: yup.number().required(),
-  CategoriaID: yup.number().required(),
-  PrecioLlevar: yup.number().optional().default(0).min(0),
-});
+export async function PUT(request: NextRequest, { params }: Segments) {
+  const platoId = Number.parseInt(params.id, 10);
+  if (!Number.isFinite(platoId)) {
+    return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+  }
 
-export async function PUT(request: Request, { params }: Segments) {
-  const { id } = params;
-
-  const plato = await prisma.platos.findFirst({
-    where: { PlatoID: parseInt(id) },
-  });
-
+  const plato = await prisma.platos.findFirst({ where: { PlatoID: platoId } });
   if (!plato) {
     return NextResponse.json(
-      { message: `Dish with id ${id} not found` },
+      { message: `Dish with id ${params.id} not found` },
       { status: 404 }
     );
   }
 
+  const parsed = await parseJson(request, UpdatePlatoSchema);
+  if (!parsed.ok) {
+    return NextResponse.json(
+      { message: parsed.message, details: parsed.details },
+      { status: parsed.status }
+    );
+  }
+  const { Descripcion, Precio, CategoriaID, PrecioLlevar } = parsed.data;
+
   try {
-    let body: any;
-    try {
-      body = await request.json();
-    } catch (err) {
-      console.warn('PUT /api/platos/[id]: request.json() falló o body vacío/no JSON válido', err);
-      return NextResponse.json({ message: 'Se requiere un cuerpo JSON válido' }, { status: 400 });
-    }
-
-    const { Descripcion, Precio, CategoriaID, PrecioLlevar } = await putSchema.validate(body);
-
     const updatedPlato = await prisma.platos.update({
-      where: { PlatoID: parseInt(id) },
+      where: { PlatoID: platoId },
       data: { Descripcion, Precio, CategoriaID, PrecioLlevar: PrecioLlevar ?? 0 },
     });
-
     return NextResponse.json(updatedPlato);
   } catch (error) {
-    return NextResponse.json(error, { status: 400 });
+    return NextResponse.json(
+      { message: "Error al actualizar plato", error: String(error) },
+      { status: 400 }
+    );
   }
 }
 
-export async function DELETE(request: Request, { params }: Segments) {
-  const { id } = params;
+export async function DELETE(_request: NextRequest, { params }: Segments) {
+  const platoId = Number.parseInt(params.id, 10);
+  if (!Number.isFinite(platoId)) {
+    return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+  }
 
-  const plato = await prisma.platos.findFirst({
-    where: { PlatoID: parseInt(id) },
-  });
-
+  const plato = await prisma.platos.findFirst({ where: { PlatoID: platoId } });
   if (!plato) {
     return NextResponse.json(
-      { message: `Dish with id ${id} not found` },
+      { message: `Dish with id ${params.id} not found` },
       { status: 404 }
     );
   }
 
   const deletedPlato = await prisma.platos.delete({
-    where: { PlatoID: parseInt(id) },
+    where: { PlatoID: platoId },
   });
 
   return NextResponse.json(deletedPlato);

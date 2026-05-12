@@ -1,100 +1,57 @@
 import prisma from "@/lib/db";
-import { mesas } from "@prisma/client";
-import { NextResponse, NextRequest } from "next/server";
-import * as yup from "yup";
+import { NextResponse } from "next/server";
+import { UpdateMesaSchema, parseJson } from "@/app/api/_lib/dto";
 
 interface Segments {
-  params: {
-    id: string;
-  };
+  params: { id: string };
 }
 
-export async function GET(request: Request, { params }: Segments) {
-  const { id } = params;
-
-  const todo = await prisma.mesas.findUnique({
-    where: {
-      MesaID: parseInt(id),
-    },
-  });
-
-  if (!todo) {
-    return NextResponse.json(
-      { message: "Mesa no encontrada" },
-      { status: 404 }
-    );
-  }
-
-  return NextResponse.json(todo);
-}
-
-const putSchema = yup.object({
-  NumeroMesa: yup.number().optional(),
-  Estado: yup.string().required().oneOf(["Libre", "Ocupada"]),
-});
-
-export async function PUT(request: Request, { params }: Segments) {
-  const { id } = params;
-
-  const mesa = await prisma.mesas.findFirst({
-    where: {
-      MesaID: parseInt(id),
-    },
+export async function GET(_request: Request, { params }: Segments) {
+  const mesa = await prisma.mesas.findUnique({
+    where: { MesaID: parseInt(params.id) },
   });
 
   if (!mesa) {
-    return NextResponse.json(
-      { message: "Mesa no encontrada" },
-      { status: 404 }
-    );
+    return NextResponse.json({ message: "Mesa no encontrada" }, { status: 404 });
+  }
+
+  return NextResponse.json(mesa);
+}
+
+export async function PUT(request: Request, { params }: Segments) {
+  const id = parseInt(params.id);
+  const mesa = await prisma.mesas.findFirst({ where: { MesaID: id } });
+
+  if (!mesa) {
+    return NextResponse.json({ message: "Mesa no encontrada" }, { status: 404 });
+  }
+
+  const parsed = await parseJson(request, UpdateMesaSchema);
+  if (!parsed.ok) {
+    return NextResponse.json({ message: parsed.message, details: parsed.details }, { status: parsed.status });
   }
 
   try {
-    let body: any;
-    try {
-      body = await request.json();
-    } catch (err) {
-      console.warn('PUT /api/mesas/[id]: request.json() falló o body vacío/no JSON válido', err);
-      return NextResponse.json({ message: 'Se requiere un cuerpo JSON válido' }, { status: 400 });
-    }
-
-    const { NumeroMesa, Estado } = await putSchema.validate(body);
     const updatedMesa = await prisma.mesas.update({
-      where: {
-        MesaID: parseInt(id),
-      },
-      data: {
-        NumeroMesa,
-        Estado,
-      },
+      where: { MesaID: id },
+      data: parsed.data,
     });
-
     return NextResponse.json(updatedMesa);
   } catch (error) {
-    return NextResponse.json(error, { status: 400 });
+    return NextResponse.json({ message: "Error al actualizar mesa", error: String(error) }, { status: 500 });
   }
 }
 
-export async function DELETE(request: Request, { params }: Segments) {
-  const { id } = params;
-
-  const mesa = await prisma.mesas.findFirst({
-    where: {
-      MesaID: parseInt(id),
-    },
-  });
+export async function DELETE(_request: Request, { params }: Segments) {
+  const id = parseInt(params.id);
+  const mesa = await prisma.mesas.findFirst({ where: { MesaID: id } });
 
   if (!mesa) {
-    return NextResponse.json(
-      { message: "Mesa no encontrada" },
-      { status: 404 }
-    );
+    return NextResponse.json({ message: "Mesa no encontrada" }, { status: 404 });
   }
 
   const deletedMesa = await prisma.mesas.delete({
-    where: {
-      MesaID: parseInt(id),
-    },
+    where: { MesaID: id },
   });
 
   return NextResponse.json(deletedMesa);

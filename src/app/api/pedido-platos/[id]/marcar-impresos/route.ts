@@ -1,55 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { MarcarImpresosSchema, parseJson } from "@/app/api/_lib/dto";
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+interface Segments {
+  params: { id: string };
+}
+
+export async function PUT(request: NextRequest, { params }: Segments) {
+  const pedidoId = Number.parseInt(params.id, 10);
+  if (!Number.isFinite(pedidoId)) {
+    return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+  }
+
+  const parsed = await parseJson(request, MarcarImpresosSchema);
+  if (!parsed.ok) {
+    return NextResponse.json(
+      { message: parsed.message, details: parsed.details },
+      { status: parsed.status }
+    );
+  }
+
+  const { detalleIds } = parsed.data;
+
   try {
-    const pedidoId = parseInt(params.id);
-    let detalleIds: any;
-    try {
-      const body = await request.json();
-      detalleIds = body?.detalleIds;
-    } catch (err) {
-      console.warn('PUT marcar-impresos: request.json() falló o body vacío/no JSON válido', err);
-      return NextResponse.json({ message: 'Se requiere un cuerpo JSON con "detalleIds"' }, { status: 400 });
-    }
-
-    if (!pedidoId || !detalleIds || !Array.isArray(detalleIds) || detalleIds.length === 0) {
-      return NextResponse.json(
-        { message: "ID de pedido o detalles no válidos" },
-        { status: 400 }
-      );
-    }
-
-    // Actualizar solo los detalles especificados como impresos
     const updateResult = await prisma.detallepedidos.updateMany({
       where: {
-        PedidoID: parseInt(params.id),
-        DetalleID: {
-          in: detalleIds,
-        },
+        PedidoID: pedidoId,
+        DetalleID: { in: detalleIds },
       },
-      data: {
-        Impreso: true,
-      },
+      data: { Impreso: true },
     });
 
-    // Log para depuración: mostrar los detalles actualizados
-    const detallesActualizados = await prisma.detallepedidos.findMany({
-      where: {
-        PedidoID: parseInt(params.id),
-        DetalleID: {
-          in: detalleIds,
-        },
-      },
+    return NextResponse.json({
+      message: "Detalles marcados como impresos",
+      updateResult,
     });
-    console.log("Detalles marcados como impresos:", detallesActualizados);
-
-    return NextResponse.json({ message: "Detalles marcados como impresos", detallesActualizados, updateResult });
   } catch (error) {
-    console.error("Error al marcar platos como impresos:", error);
+    console.error("[API marcar-impresos] error", error);
     return NextResponse.json(
       { message: "Error al marcar platos como impresos" },
       { status: 500 }

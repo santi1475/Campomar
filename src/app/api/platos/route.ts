@@ -1,53 +1,28 @@
 import prisma from "@/lib/db";
-import { color } from "framer-motion";
-import { NextResponse, NextRequest } from "next/server";
-import * as yup from "yup";
+import { NextResponse } from "next/server";
+import { CreatePlatoSchema, parseJson } from "@/app/api/_lib/dto";
 
-export async function GET(request: Request) {
+export async function GET() {
   const platos = await prisma.platos.findMany({
     include: {
-      categorias: {
-        select: {
-          Color: true,
-        }
-      }
-    }
+      categorias: { select: { Color: true } },
+    },
   });
-
-  if (!platos) {
-    return NextResponse.json(
-      { message: "No se encontraron platos" },
-      { status: 404 }
-    );
-  }
 
   return NextResponse.json(platos);
 }
 
-// PlatoID int AI PK
-// Descripcion varchar(255)
-// Precio decimal(10,2)
-// CategoriaID int
-
-const postSchema = yup.object({
-  Descripcion: yup.string().required(),
-  Precio: yup.number().required(),
-  CategoriaID: yup.number().required(),
-  PrecioLlevar: yup.number().optional().default(0).min(0),
-});
-
 export async function POST(request: Request) {
+  const parsed = await parseJson(request, CreatePlatoSchema);
+  if (!parsed.ok) {
+    return NextResponse.json(
+      { message: parsed.message, details: parsed.details },
+      { status: parsed.status }
+    );
+  }
+  const { Descripcion, Precio, CategoriaID, PrecioLlevar } = parsed.data;
+
   try {
-    let body: any;
-    try {
-      body = await request.json();
-    } catch (err) {
-      console.warn('POST /api/platos: request.json() falló o body vacío/no JSON válido', err);
-      return NextResponse.json({ message: 'Se requiere un cuerpo JSON válido' }, { status: 400 });
-    }
-
-    const { Descripcion, Precio, CategoriaID, PrecioLlevar } = await postSchema.validate(body);
-
     const plato = await prisma.platos.create({
       data: {
         Descripcion,
@@ -56,9 +31,11 @@ export async function POST(request: Request) {
         PrecioLlevar: PrecioLlevar ?? 0,
       },
     });
-
     return NextResponse.json(plato);
   } catch (error) {
-    return NextResponse.json(error, { status: 400 });
+    return NextResponse.json(
+      { message: "Error al crear plato", error: String(error) },
+      { status: 400 }
+    );
   }
 }

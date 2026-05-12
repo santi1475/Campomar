@@ -1,95 +1,102 @@
 import prisma from "@/lib/db";
 import { NextResponse, NextRequest } from "next/server";
-import * as yup from "yup";
+import bcrypt from "bcryptjs";
+import { UpdateEmpleadoSchema, parseJson } from "@/app/api/_lib/dto";
 
 interface Segments {
-  params: {
-    id: string;
-  };
+  params: { id: string };
 }
 
-export async function GET(request: Request, { params }: Segments) {
-  const { id } = params;
+const BCRYPT_HASH_REGEX = /^\$2[aby]\$\d{2}\$/;
+
+export async function GET(_request: NextRequest, { params }: Segments) {
+  const empleadoId = Number.parseInt(params.id, 10);
+  if (!Number.isFinite(empleadoId)) {
+    return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+  }
 
   const empleado = await prisma.empleados.findFirst({
-    where: { EmpleadoID: parseInt(id) },
+    where: { EmpleadoID: empleadoId },
   });
 
   if (!empleado) {
     return NextResponse.json(
-      { message: `Employee with id ${id} not found` },
+      { message: `Employee with id ${params.id} not found` },
       { status: 404 }
     );
   }
 
-  return NextResponse.json(empleado);
+  const { Password: _omit, ...safe } = empleado;
+  return NextResponse.json(safe);
 }
 
-// =================== INICIO DE LA CORRECCIÓN ===================
-// Añadimos 'Activo' al esquema de validación.
-const putSchema = yup.object({
-  Nombre: yup.string().required(),
-  TipoEmpleadoID: yup.number().required(),
-  DNI: yup.string().required(),
-  Password: yup.string().required(),
-  Activo: yup.boolean().optional(), // Hacemos que 'Activo' sea opcional
-});
-
-export async function PUT(request: Request, { params }: Segments) {
-  const { id } = params;
+export async function PUT(request: NextRequest, { params }: Segments) {
+  const empleadoId = Number.parseInt(params.id, 10);
+  if (!Number.isFinite(empleadoId)) {
+    return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+  }
 
   const empleado = await prisma.empleados.findFirst({
-    where: { EmpleadoID: parseInt(id) },
+    where: { EmpleadoID: empleadoId },
   });
 
   if (!empleado) {
     return NextResponse.json(
-      { message: `Employee with id ${id} not found` },
+      { message: `Employee with id ${params.id} not found` },
       { status: 404 }
     );
   }
+
+  const parsed = await parseJson(request, UpdateEmpleadoSchema);
+  if (!parsed.ok) {
+    return NextResponse.json(
+      { message: parsed.message, details: parsed.details },
+      { status: parsed.status }
+    );
+  }
+  const { DNI, Nombre, Password, TipoEmpleadoID, Activo } = parsed.data;
 
   try {
-    // Ahora también extraemos 'Activo' del cuerpo de la solicitud.
-    let body: any;
-    try {
-      body = await request.json();
-    } catch (err) {
-      console.warn('PUT /api/empleados/[id]: request.json() falló o body vacío/no JSON válido', err);
-      return NextResponse.json({ message: 'Se requiere un cuerpo JSON válido' }, { status: 400 });
-    }
-
-    const { DNI, Nombre, Password, TipoEmpleadoID, Activo } = await putSchema.validate(body);
+    const passwordToStore = BCRYPT_HASH_REGEX.test(Password)
+      ? Password
+      : await bcrypt.hash(Password, 10);
 
     const updatedEmpleado = await prisma.empleados.update({
-      where: { EmpleadoID: parseInt(id) },
-      data: { DNI, Nombre, Password, TipoEmpleadoID, Activo }, // Incluimos 'Activo' en los datos a actualizar
+      where: { EmpleadoID: empleadoId },
+      data: { DNI, Nombre, Password: passwordToStore, TipoEmpleadoID, Activo },
     });
 
-    return NextResponse.json(updatedEmpleado);
+    const { Password: _omit, ...safe } = updatedEmpleado;
+    return NextResponse.json(safe);
   } catch (error) {
-    return NextResponse.json(error, { status: 400 });
+    return NextResponse.json(
+      { message: "Error al actualizar empleado", error: String(error) },
+      { status: 400 }
+    );
   }
 }
 
-
-export async function DELETE(request: Request, { params }: Segments) {
-  const { id } = params;
+export async function DELETE(_request: NextRequest, { params }: Segments) {
+  const empleadoId = Number.parseInt(params.id, 10);
+  if (!Number.isFinite(empleadoId)) {
+    return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+  }
 
   const empleado = await prisma.empleados.findFirst({
-    where: { EmpleadoID: parseInt(id) },
+    where: { EmpleadoID: empleadoId },
   });
 
   if (!empleado) {
     return NextResponse.json(
-      { message: `Empleado con id ${id} no encontrado` },
+      { message: `Empleado con id ${params.id} no encontrado` },
       { status: 404 }
     );
   }
 
   const deletedEmpleado = await prisma.empleados.delete({
-    where: { EmpleadoID: parseInt(id) },
+    where: { EmpleadoID: empleadoId },
   });
 
-  return NextResponse.json(deletedEmpleado);
+  const { Password: _omit, ...safe } = deletedEmpleado;
+  return NextResponse.json(safe);
 }
