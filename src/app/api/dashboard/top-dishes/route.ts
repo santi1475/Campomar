@@ -1,6 +1,7 @@
 import prisma from "@/lib/db";
 import { NextResponse } from "next/server";
 import { normalizePeruRange } from "@/lib/dateRange";
+import { PedidoEstado } from "@prisma/client";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
         },
       },
       orderBy: { _sum: { Cantidad: "desc" } },
-      take: 5, // Opcional: cantidad de platos más vendidos
+      take: 5,
     });
 
     const detailedDishes = await Promise.all(
@@ -29,7 +30,7 @@ export async function GET(req: Request) {
         });
         return {
           dish: plato?.Descripcion || "Desconocido",
-          totalSold: dish._sum.Cantidad || 0,
+          totalSold: dish._sum?.Cantidad ?? 0,
         };
       })
     );

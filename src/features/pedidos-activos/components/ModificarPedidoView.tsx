@@ -4,7 +4,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useEmpleadoStore } from "@/store/empleado"
-import type { empleados, mesas } from "@prisma/client"
+import { MesaEstado, PedidoEstado, type empleados, type mesas } from "@prisma/client"
+import { toast } from "sonner"
 import { X, PlusIcon, MinusIcon, Trash2, Printer, Check, ChevronDown, ChevronUp, Maximize2, Package } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
@@ -258,10 +259,12 @@ export const MesaOcupada = () => {
         }),
       })
       if (!response.ok) throw new Error("Error al pagar el pedido")
+      toast.success("Pago registrado correctamente")
       router.push("/empleado/sala")
     } catch (error) {
       console.error(error)
       setError("Error al pagar el pedido.")
+      toast.error("Error al pagar el pedido.")
     } finally {
       setIsLoading(false)
       setIsConfirmDialogOpen(false)
@@ -270,7 +273,7 @@ export const MesaOcupada = () => {
 
   const handlePagarPedido = () => {
     if (!pedido || !tipoPago) {
-      alert("Selecciona un tipo de pago")
+      toast.warning("Selecciona un tipo de pago")
       return
     }
 

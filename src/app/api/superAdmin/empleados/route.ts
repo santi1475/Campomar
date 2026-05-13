@@ -1,13 +1,25 @@
 import prisma from "@/lib/db";
 import { NextResponse } from "next/server";
+import { PedidoEstado } from "@prisma/client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-    try {
-        const empleados = await prisma.empleados.findMany({
-            where: { Activo: true },
-            select: { EmpleadoID: true, Nombre: true, DNI: true }
+  try {
+    const empleados = await prisma.empleados.findMany({
+      where: { Activo: true },
+      select: { EmpleadoID: true, Nombre: true, DNI: true },
+    });
+
+    const scorecard = await Promise.all(
+      empleados.map(async (emp) => {
+        const ventas = await prisma.pedidos.aggregate({
+          _sum: { Total: true },
+          _count: { PedidoID: true },
+          where: {
+            EmpleadoID: emp.EmpleadoID,
+            Estado: PedidoEstado.Cerrado,
+          },
         });
 
         const scorecard = await Promise.all(empleados.map(async (emp) => {

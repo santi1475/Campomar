@@ -8,30 +8,51 @@ datasource db {
   schemas  = ["auth", "public"]
 }
 
-enum PedidoEstado {
-  Activo
-  Cerrado
-}
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model audit_log_entries {
+  instance_id String?   @db.Uuid
+  id          String    @id @db.Uuid
+  payload     Json?     @db.Json
+  created_at  DateTime? @db.Timestamptz(6)
+  ip_address  String    @default("") @db.VarChar(64)
 
   @@index([instance_id], map: "audit_logs_instance_id_idx")
   @@schema("auth")
 }
 
-model pedidos {
-  PedidoID       Int              @id @default(autoincrement())
-  EmpleadoID     Int
-  Fecha          DateTime?        @default(now()) @db.Timestamptz(6)
-  Total          Decimal          @db.Decimal(10, 2)
-  Estado         PedidoEstado     @default(Activo)
-  TipoPago       Int?
-  ParaLlevar     Boolean          @default(false)
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model custom_oauth_providers {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_type         String
+  identifier            String    @unique
+  name                  String
+  client_id             String
+  client_secret         String
+  acceptable_client_ids String[]  @default([])
+  scopes                String[]  @default([])
+  pkce_enabled          Boolean   @default(true)
+  attribute_mapping     Json      @default("{}")
+  authorization_params  Json      @default("{}")
+  enabled               Boolean   @default(true)
+  email_optional        Boolean   @default(false)
+  issuer                String?
+  discovery_url         String?
+  skip_nonce_check      Boolean   @default(false)
+  cached_discovery      Json?
+  discovery_cached_at   DateTime? @db.Timestamptz(6)
+  authorization_url     String?
+  token_url             String?
+  userinfo_url          String?
+  jwks_uri              String?
+  created_at            DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime  @default(now()) @db.Timestamptz(6)
 
-  detallepedidos detallepedidos[]
-  pedido_mesas   pedido_mesas[]
-  empleados      empleados        @relation(fields: [EmpleadoID], references: [EmpleadoID], onDelete: NoAction, onUpdate: NoAction)
-  tipopago       tipopago?        @relation(fields: [TipoPago], references: [TipoPagoID], onDelete: NoAction, onUpdate: NoAction)
-  comandas_cocina  comandas_cocina[]
-  auditoria_eliminaciones auditoria_eliminaciones[]
+  @@index([created_at])
+  @@index([enabled])
+  @@index([identifier])
+  @@index([provider_type])
+  @@schema("auth")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -522,28 +543,13 @@ model categorias {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model comandas_cocina {
-  ComandaID        Int                @id @default(autoincrement())
-  PedidoID         Int
-  Comentario       String?
-  EstadoImpresion  String             @default("pendiente") @db.VarChar(20)
-  FechaCreacion    DateTime           @default(now()) @db.Timestamptz(6)
-  pedidos          pedidos            @relation(fields: [PedidoID], references: [PedidoID])
-  detalle_comandas detalle_comandas[]
+  ComandaID       Int      @id @default(autoincrement())
+  PedidoID        Int
+  Comentario      String?
+  EstadoImpresion String   @default("pendiente") @db.VarChar(20)
+  FechaCreacion   DateTime @default(now()) @db.Timestamptz(6)
+  pedidos         pedidos  @relation(fields: [PedidoID], references: [PedidoID])
 
-  @@schema("public")
-}
-
-model detalle_comandas {
-  ComandaDetalleID Int             @id @default(autoincrement())
-  ComandaID        Int
-  PlatoID          Int
-  Cantidad         Int
-  ParaLlevar       Boolean         @default(false)
-  comandas_cocina  comandas_cocina @relation(fields: [ComandaID], references: [ComandaID], onDelete: Cascade)
-  platos           platos          @relation(fields: [PlatoID], references: [PlatoID])
-
-  @@index([ComandaID])
-  @@index([PlatoID])
   @@schema("public")
 }
 
@@ -617,7 +623,6 @@ model pedidos {
   Estado                  PedidoEstado              @default(Activo)
   TipoPago                Int?
   ParaLlevar              Boolean                   @default(false)
-  IdempotencyKey          String?                   @unique @db.Uuid
   auditoria_eliminaciones auditoria_eliminaciones[]
   comandas_cocina         comandas_cocina[]
   detallepedidos          detallepedidos[]
@@ -631,15 +636,14 @@ model pedidos {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model platos {
-  PlatoID          Int                @id @default(autoincrement())
-  Descripcion      String?            @db.VarChar(255)
-  Precio           Decimal?           @db.Decimal(10, 2)
-  CategoriaID      Int
-  Activo           Boolean?           @default(true)
-  PrecioLlevar     Decimal?           @default(0.00) @db.Decimal
-  detallepedidos   detallepedidos[]
-  detalle_comandas detalle_comandas[]
-  categorias       categorias         @relation(fields: [CategoriaID], references: [CategoriaID], onDelete: NoAction, onUpdate: NoAction)
+  PlatoID        Int              @id @default(autoincrement())
+  Descripcion    String?          @db.VarChar(255)
+  Precio         Decimal?         @db.Decimal(10, 2)
+  CategoriaID    Int
+  Activo         Boolean?         @default(true)
+  PrecioLlevar   Decimal?         @default(0.00) @db.Decimal
+  detallepedidos detallepedidos[]
+  categorias     categorias       @relation(fields: [CategoriaID], references: [CategoriaID], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("public")
 }

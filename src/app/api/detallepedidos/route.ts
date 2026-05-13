@@ -1,52 +1,34 @@
 import prisma from "@/lib/db";
 import { NextResponse, NextRequest } from "next/server";
-import * as yup from "yup";
+import { CreateDetallePedidoSchema, parseJson } from "@/app/api/_lib/dto";
 import { recalcularTotal } from "./util";
 
-export async function GET(req: NextRequest, res: NextResponse) {
+export async function GET() {
   const detallePedidos = await prisma.detallepedidos.findMany();
-
-  if (!detallePedidos) {
-    return NextResponse.json(
-      { message: "No se encontraron pedidos" },
-      { status: 404 }
-    );
-  }
-
   return NextResponse.json(detallePedidos);
 }
 
-// DetalleID int AI PK
-// PedidoID int
-// PlatoID int
-// Cantidad int
-
-const postSchema = yup.object({
-  PedidoID: yup.number().required(),
-  PlatoID: yup.number().required(),
-  Cantidad: yup.number().required(),
-  ParaLlevar: yup.boolean().default(false),
-  PrecioUnitario: yup.number().optional(),
-});
-
-export async function POST(req: NextRequest, res: NextResponse) {
-  try {
-    const { PedidoID, PlatoID, Cantidad, ParaLlevar, PrecioUnitario } = await postSchema.validate(
-      await req.json()
+export async function POST(req: NextRequest) {
+  const parsed = await parseJson(req, CreateDetallePedidoSchema);
+  if (!parsed.ok) {
+    return NextResponse.json(
+      { message: parsed.message, details: parsed.details },
+      { status: parsed.status }
     );
+  }
 
-    // Buscar el plato para obtener el precio correcto si no se envía
+  const { PedidoID, PlatoID, Cantidad, ParaLlevar, PrecioUnitario } = parsed.data;
+
+  try {
     let precioFinal = PrecioUnitario;
-    if (typeof precioFinal !== "number" || isNaN(precioFinal)) {
-      const plato = await prisma.platos.findUnique({
-        where: { PlatoID },
-      });
+    if (typeof precioFinal !== "number" || Number.isNaN(precioFinal)) {
+      const plato = await prisma.platos.findUnique({ where: { PlatoID } });
       if (!plato) {
         return NextResponse.json({ message: "Plato no encontrado" }, { status: 404 });
       }
-  const precioLlevar = plato.PrecioLlevar !== null ? Number(plato.PrecioLlevar) : 0;
-  const precioBase = plato.Precio !== null ? Number(plato.Precio) : 0;
-  precioFinal = ParaLlevar ? precioLlevar : precioBase;
+      const precioLlevar = plato.PrecioLlevar !== null ? Number(plato.PrecioLlevar) : 0;
+      const precioBase = plato.Precio !== null ? Number(plato.Precio) : 0;
+      precioFinal = ParaLlevar ? precioLlevar : precioBase;
     }
 
     const detallePedidos = await prisma.detallepedidos.create({
@@ -56,7 +38,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
         Cantidad,
         ParaLlevar,
         PrecioUnitario: precioFinal,
-        Impreso: false, // Asegurar que los nuevos platos no estén marcados como impresos
+        Impreso: false,
       },
     });
 
@@ -64,6 +46,9 @@ export async function POST(req: NextRequest, res: NextResponse) {
 
     return NextResponse.json(detallePedidos);
   } catch (error) {
-    return NextResponse.json(error, { status: 400 });
+    return NextResponse.json(
+      { message: "Error al crear detalle", error: String(error) },
+      { status: 400 }
+    );
   }
 }

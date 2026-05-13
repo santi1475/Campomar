@@ -1,55 +1,34 @@
 import prisma from "@/lib/db";
-import { NextResponse, NextRequest } from "next/server";
-import * as yup from "yup";
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import { CreateEmpleadoSchema, parseJson } from "@/app/api/_lib/dto";
 
-export async function GET(request: Request) {
+export async function GET() {
   const empleados = await prisma.empleados.findMany();
-
-  if (!empleados) {
-    return NextResponse.json(
-      { message: "No se encontraron empleados" },
-      { status: 404 }
-    );
-  }
-
   return NextResponse.json(empleados);
 }
 
-// Nombre varchar(100)
-// TipoEmpleadoID int
-// DNI char(8)
-// Password
-
-const postSchema = yup.object({
-  Nombre: yup.string().required(),
-  TipoEmpleadoID: yup.number().required(),
-  DNI: yup.string().required(),
-  Password: yup.string().required(),
-});
-
 export async function POST(request: Request) {
+  const parsed = await parseJson(request, CreateEmpleadoSchema);
+  if (!parsed.ok) {
+    return NextResponse.json(
+      { message: parsed.message, details: parsed.details },
+      { status: parsed.status }
+    );
+  }
+  const { DNI, Nombre, Password, TipoEmpleadoID } = parsed.data;
+
   try {
-    let body: any;
-    try {
-      body = await request.json();
-    } catch (err) {
-      console.warn('POST /api/empleados: request.json() falló o body vacío/no JSON válido', err);
-      return NextResponse.json({ message: 'Se requiere un cuerpo JSON válido' }, { status: 400 });
-    }
-
-    const { DNI, Nombre, Password, TipoEmpleadoID } = await postSchema.validate(body);
-
+    const hashed = await bcrypt.hash(Password, 10);
     const empleado = await prisma.empleados.create({
-      data: {
-        Nombre,
-        TipoEmpleadoID,
-        DNI,
-        Password,
-      },
+      data: { Nombre, TipoEmpleadoID, DNI, Password: hashed },
     });
-
-    return NextResponse.json(empleado);
+    const { Password: _omit, ...safe } = empleado;
+    return NextResponse.json(safe);
   } catch (error) {
-    return NextResponse.json(error, { status: 400 });
+    return NextResponse.json(
+      { message: "Error al crear empleado", error: String(error) },
+      { status: 400 }
+    );
   }
 }

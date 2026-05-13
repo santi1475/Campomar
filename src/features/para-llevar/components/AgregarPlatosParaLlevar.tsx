@@ -94,16 +94,29 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
             : pl.PrecioLlevar && Number(pl.PrecioLlevar) > 0
                 ? Number(pl.PrecioLlevar)
                 : Number(pl.Precio)
-        setDraft((prev) => [
-            ...prev,
-            {
-                PlatoID: pl.PlatoID,
-                Descripcion: pl.Descripcion,
-                Precio: precio,
-                Cantidad: 1,
-                ParaLlevar: esParaLlevar,
-            },
-        ])
+
+        setDraft((prev) => {
+            const existe = prev.find((item) => item.PlatoID === pl.PlatoID);
+
+            if (existe) {
+                return prev.map((item) => 
+                    item.PlatoID === pl.PlatoID 
+                        ? { ...item, Cantidad: item.Cantidad + 1 } 
+                        : item
+                );
+            } else {
+                return [
+                    ...prev,
+                    {
+                        PlatoID: pl.PlatoID,
+                        Descripcion: pl.Descripcion,
+                        Precio: precio,
+                        Cantidad: 1,
+                        ParaLlevar: esParaLlevar,
+                    },
+                ];
+            }
+        })
     }
 
     const handleToggleModoParaLlevar = () => {

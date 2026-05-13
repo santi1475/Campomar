@@ -14,6 +14,8 @@ import BoletaCocinaModal from "@/features/impresion-cocina/components/BoletaCoci
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import AgregarPlatosParaLlevar from "@/features/para-llevar/components/AgregarPlatosParaLlevar";
 import YapeQR from "@/assets/OIP.jpg"
+import { PedidoEstado } from "@prisma/client";
+import { toast } from "sonner";
 
 interface Plato { PlatoID: number; Descripcion: string; Precio: any; CategoriaID: number }
 interface DetalleView { DetalleID: number; PlatoID: number; descripcionPlato: string; Cantidad: number; PrecioUnitario: number; Impreso: boolean }
@@ -210,9 +212,7 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
         try {
             const response = await fetch(`/api/pedidos/${pedidoId}`, {
                 method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ...pedido,
                     Estado: 'Cerrado',
@@ -223,10 +223,12 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
             if (!response.ok) {
                 throw new Error("Error al pagar el pedido");
             }
+            toast.success("Pago registrado correctamente");
             router.push("/empleado/para-llevar/lista");
         } catch (error) {
             console.error(error);
             setError("Error al pagar el pedido. Inténtalo de nuevo más tarde.");
+            toast.error("Error al pagar el pedido.");
         } finally {
             setIsLoading(false);
             setIsConfirmDialogOpen(false);
@@ -235,7 +237,7 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
 
     const handlePagarPedido = () => {
         if (!pedido || !tipoPago) {
-            alert("Selecciona un tipo de pago");
+            toast.warning("Selecciona un tipo de pago");
             return;
         }
 

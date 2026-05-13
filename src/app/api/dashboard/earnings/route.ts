@@ -1,7 +1,7 @@
 import prisma from "@/lib/db";
 import { NextResponse } from "next/server";
 import { normalizePeruRange } from "@/lib/dateRange";
-import { de, deAT } from "date-fns/locale";
+import { PedidoEstado } from "@prisma/client";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -10,7 +10,6 @@ export async function GET(req: Request) {
   const peruRange = normalizePeruRange(startDate, endDate);
 
   try {
-    // Consulta las ganancias totales
     const pedidosPagados = await prisma.pedidos.findMany({
       where: {
         Fecha: peruRange ? { gte: peruRange.start, lte: peruRange.end } : undefined,
@@ -23,12 +22,11 @@ export async function GET(req: Request) {
 
     const totalEarnings = pedidosPagados.reduce((acc, pedido) => {
       const pedidoTotal = pedido.detallepedidos.reduce((subAcc, detalle) => {
-        return subAcc + (Number(detalle.PrecioUnitario) * detalle.Cantidad);
+        return subAcc + Number(detalle.PrecioUnitario) * detalle.Cantidad;
       }, 0);
       return acc + pedidoTotal;
     }, 0);
-    
-    // Consulta las ganancias por tipo de pago
+
     const earningsByPaymentType = await prisma.pedidos.groupBy({
       by: ["TipoPago"],
       _sum: { Total: true },
@@ -39,18 +37,18 @@ export async function GET(req: Request) {
       },
     });
 
-    // Mapear los valores de TipoPago a las claves correctas
     const earningsData = earningsByPaymentType.reduce(
       (acc: { efectivo: number; yape: number; pos: number }, item) => {
+        const total = Number(item._sum?.Total ?? 0);
         switch (item.TipoPago) {
           case 1:
-            acc.efectivo = Number(item._sum.Total) || 0;
+            acc.efectivo = total;
             break;
           case 2:
-            acc.yape = Number(item._sum.Total) || 0;
+            acc.yape = total;
             break;
           case 3:
-            acc.pos = Number(item._sum.Total) || 0;
+            acc.pos = total;
             break;
         }
         return acc;

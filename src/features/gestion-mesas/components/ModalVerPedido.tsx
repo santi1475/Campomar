@@ -33,6 +33,8 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ShoppingCart, Receipt, Utensils, Check } from "lucide-react"
+import { PedidoEstado } from "@prisma/client"
+import { toast } from "sonner"
 
 interface DetallePedido {
   DetalleID: number
@@ -117,9 +119,7 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
     try {
       const response = await fetch(`/api/pedidos/${pedidoData.PedidoID}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           Estado: 'Cerrado',
           TipoPago: tipoPago,
@@ -136,7 +136,9 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
       handleOpenChange(false)
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al pagar")
+      const msg = err instanceof Error ? err.message : "Error al pagar"
+      setError(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
       setIsConfirmDialogOpen(false)
@@ -145,7 +147,7 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
 
   const handlePagarPedido = () => {
     if (!tipoPago) {
-      alert("Por favor, selecciona un método de pago.")
+      toast.warning("Selecciona un método de pago.")
       return
     }
     setIsConfirmDialogOpen(true)
