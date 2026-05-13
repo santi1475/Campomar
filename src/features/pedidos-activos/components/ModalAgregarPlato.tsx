@@ -385,7 +385,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                               const detallesParaComanda = orderItems.map(item => ({
                                 PlatoID: item.PlatoID,
                                 Cantidad: item.Cantidad,
-                                Descripcion: `${item.Descripcion || "Plato sin descripción"}${item.ParaLlevar ? ' (P/LLEVAR)' : ''}`
+                                ParaLlevar: !!item.ParaLlevar
                               }));
 
                               let comentarioFinal = comentario;
@@ -538,7 +538,7 @@ export const MesaOcupadaAgregar = ({ addPlatoToPedido, pedido, onPedidoUpdated }
                             const detallesParaComanda = orderItems.map(item => ({
                               PlatoID: item.PlatoID,
                               Cantidad: item.Cantidad,
-                              Descripcion: `${item.Descripcion || "Plato sin descripción"}${item.ParaLlevar ? ' (P/LLEVAR)' : ''}`
+                              ParaLlevar: !!item.ParaLlevar
                             }));
 
                             let comentarioFinal = comentario;

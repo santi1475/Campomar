@@ -146,16 +146,19 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
             })
 
             let comentarioFinal = comentario
-            // Si hay platos con precio normal, indica que el cliente tiene taper
+            // Si hay platos con precio normal, genera un comentario específico indicando cuáles son
             if (platosConTaper.length > 0) {
-                comentarioFinal = comentario ? `Cliente con taper | ${comentario}` : "Cliente con taper"
+                const nombresTaper = platosConTaper.map(p => `${p.Cantidad}x ${p.Descripcion}`).join(", ")
+                const msgTaper = `Taper de cliente para: ${nombresTaper}`
+                comentarioFinal = comentario ? `${msgTaper} | ${comentario}` : msgTaper
             }
+
             await onAddPlatos(
                 draft.map((d) => ({
                     PlatoID: d.PlatoID,
                     Cantidad: d.Cantidad,
                     Descripcion: d.Descripcion,
-                    ParaLlevar: d.ParaLlevar,
+                    ParaLlevar: true,
                     PrecioUnitario: d.Precio, // Ya está correctamente calculado al agregar al draft
                 })),
                 comentarioFinal,
@@ -164,7 +167,7 @@ export default function AgregarPlatosParaLlevar({ pedidoId, detalles, tipoPedido
             const detallesParaComanda = draft.map((item) => ({
                 PlatoID: item.PlatoID,
                 Cantidad: item.Cantidad,
-                Descripcion: `${item.Descripcion}${item.ParaLlevar ? " (P/LLEVAR)" : ""}`,
+                ParaLlevar: true,
             }))
 
             const requestBody = {

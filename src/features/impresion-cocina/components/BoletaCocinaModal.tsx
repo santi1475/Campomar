@@ -59,6 +59,13 @@ export default function BoletaCocinaModal({
   const handleFinalizeAndPrint = async () => {
     if (mode !== "crear" || !handleRealizarPedido) return
 
+    // ⚠️ Capturar ANTES de llamar handleRealizarPedido porque ese callback
+    // llama a setOrderItems([]) en el padre, lo que puede vaciar la clausura
+    const itemsSnapshot = orderItems.map((item) => ({
+      PlatoID: item.PlatoID,
+      Cantidad: item.Cantidad,
+    }))
+
     setIsSubmitting(true)
     try {
       const pedidoID = await handleRealizarPedido()
@@ -71,6 +78,8 @@ export default function BoletaCocinaModal({
       const comentarioFinal = aclaracionDeposito
         ? (comentario ? `${aclaracionDeposito} | ${comentario}` : aclaracionDeposito)
         : comentario
+
+      console.log(`📤 Enviando comanda para pedido ${pedidoID} con ${itemsSnapshot.length} detalles:`, itemsSnapshot)
 
       const comandaResponse = await fetch("/api/comanda-cocina", {
         method: "POST",
@@ -87,7 +96,7 @@ export default function BoletaCocinaModal({
       }
 
       const comanda = await comandaResponse.json()
-      console.log(`✅ Pedido ${pedidoID} creado y comanda ${comanda.ComandaID} generada para impresión.`)
+      console.log(`✅ Pedido ${pedidoID} creado y comanda ${comanda.ComandaID} generada. detalles enviados: ${itemsSnapshot.length}`)
       setIsOpen(false)
     } catch (error) {
       console.error("Error en el proceso:", error)

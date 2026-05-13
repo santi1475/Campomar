@@ -15,6 +15,14 @@ export async function POST(req: NextRequest) {
   const tieneDetalles = Array.isArray(detalles) && detalles.length > 0;
   const tipoComanda = tieneDetalles ? "nuevos_platos" : "normal";
 
+  // 🔍 DIAGNÓSTICO: ver exactamente qué llega al API
+  console.log("[comanda-cocina] Recibido →", {
+    pedidoID,
+    tieneDetalles,
+    detallesCount: detalles?.length ?? 0,
+    detalles: JSON.stringify(detalles),
+  });
+
   try {
     const nuevaComanda = await prisma.$transaction(async (tx) => {
       const comanda = await tx.comandas_cocina.create({
@@ -33,8 +41,10 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      console.log(`[comanda-cocina] Comanda #${comanda.ComandaID} creada. tieneDetalles=${tieneDetalles}`);
+
       if (tieneDetalles && detalles) {
-        await tx.detalle_comandas.createMany({
+        const result = await tx.detalle_comandas.createMany({
           data: detalles.map((d) => ({
             ComandaID: comanda.ComandaID,
             PlatoID: d.PlatoID,
@@ -42,6 +52,7 @@ export async function POST(req: NextRequest) {
             ParaLlevar: d.ParaLlevar ?? false,
           })),
         });
+        console.log(`[comanda-cocina] detalle_comandas insertados: ${result.count}`);
 
         const platosIds = detalles.map((d) => d.PlatoID);
         await tx.detallepedidos.updateMany({
@@ -53,6 +64,7 @@ export async function POST(req: NextRequest) {
           data: { Impreso: true },
         });
       } else {
+        console.log("[comanda-cocina] Sin detalles → marcando todos los platos del pedido como impresos");
         await tx.detallepedidos.updateMany({
           where: { PedidoID: pedidoID },
           data: { Impreso: true },
