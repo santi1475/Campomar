@@ -22,8 +22,10 @@ export default function ListaPedidosParaLlevar() {
         try {
             const res = await fetch("/api/pedidos?Estado=true&ParaLlevar=true")
             if (res.ok) {
-                const data = await res.json()
-                setPedidos(data.sort((a: PedidoLite, b: PedidoLite) => b.PedidoID - a.PedidoID))
+                // /api/pedidos devuelve { data: [], pagination: {} }
+                const json = await res.json()
+                const pedidosArray: PedidoLite[] = Array.isArray(json) ? json : (json.data ?? [])
+                setPedidos(pedidosArray.sort((a, b) => b.PedidoID - a.PedidoID))
             }
         } finally {
             setLoading(false)
