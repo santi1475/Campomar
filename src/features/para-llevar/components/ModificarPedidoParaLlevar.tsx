@@ -215,7 +215,7 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                 },
                 body: JSON.stringify({
                     ...pedido,
-                    Estado: false,
+                    Estado: 'Cerrado',
                     Fecha: new Date(),
                     TipoPago: tipoPago,
                 }),

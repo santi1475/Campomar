@@ -10,7 +10,7 @@ interface PedidoLite {
     PedidoID: number
     Fecha: string
     Total: any
-    Estado: boolean
+    Estado: 'Activo' | 'Cerrado'
 }
 
 export default function ListaPedidosParaLlevar() {

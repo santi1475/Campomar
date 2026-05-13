@@ -252,7 +252,7 @@ export const MesaOcupada = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...pedido,
-          Estado: false,
+          Estado: 'Cerrado',
           Fecha: new Date(),
           TipoPago: tipoPago,
         }),

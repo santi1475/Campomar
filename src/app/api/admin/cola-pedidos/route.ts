@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) { // Usar NextRequest
 
         // 2. Construir el 'where' dinámicamente
         let where: any = {
-            Estado: true, // Siempre traer solo pedidos activos
+            Estado: 'Activo', // Siempre traer solo pedidos activos
         };
 
         // Filtro por Tipo (Mesas / Para Llevar)

@@ -48,7 +48,7 @@ interface PedidoData {
   detalles: DetallePedido[]
   total: number
   TipoPago?: number | null
-  Estado?: boolean
+  Estado?: 'Activo' | 'Cerrado'
   MozoNombre?: string | null
 }
 
@@ -108,7 +108,7 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
   const procesarPago = async () => {
     if (!pedidoData || !tipoPago) return
     // Evitar reprocesar si ya está cerrado
-    if (pedidoData.Estado === false) {
+    if (pedidoData.Estado === 'Cerrado') {
       setError("El pedido ya fue cerrado anteriormente.")
       return
     }
@@ -121,7 +121,7 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          Estado: false,
+          Estado: 'Cerrado',
           TipoPago: tipoPago,
         }),
       })
@@ -132,7 +132,7 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
 
       // Éxito
       // Refrescar datos localmente antes de cerrar para mejor UX
-      setPedidoData({ ...pedidoData, Estado: false, TipoPago: tipoPago })
+      setPedidoData({ ...pedidoData, Estado: 'Cerrado', TipoPago: tipoPago })
       handleOpenChange(false)
       router.refresh()
     } catch (err) {
@@ -229,7 +229,7 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
                       <Badge variant="secondary" className="text-lg px-3 py-1">
                         {pedidoData.detalles.length} plato{pedidoData.detalles.length !== 1 ? "s" : ""}
                       </Badge>
-                      {pedidoData.Estado === false && (
+                      {pedidoData.Estado === 'Cerrado' && (
                         <Badge className="bg-green-600 hover:bg-green-600 text-white">Pagado</Badge>
                       )}
                     </div>
@@ -295,7 +295,7 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
                   <Select
                     onValueChange={(value) => setTipoPago(Number(value))}
                     value={tipoPago?.toString() || ""}
-                    disabled={pedidoData.Estado === false}
+                    disabled={pedidoData.Estado === 'Cerrado'}
                   >
                     <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Método de pago" />
@@ -309,11 +309,11 @@ export default function PedidosModal({ mesas, triggerText = "Ver Pedido" }: Pedi
 
                   <Button
                     onClick={handlePagarPedido}
-                    disabled={!tipoPago || loading || pedidoData.Estado === false}
+                    disabled={!tipoPago || loading || pedidoData.Estado === 'Cerrado'}
                     className={`w-full sm:w-auto h-12 px-8 ${buttonColor} transition-all duration-300 ease-in-out transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold`}
                   >
                     <Check className="w-5 h-5 mr-2" />
-                    {pedidoData.Estado === false ? "Ya Pagado" : "Pagar Pedido"}
+                    {pedidoData.Estado === 'Cerrado' ? "Ya Pagado" : "Pagar Pedido"}
                   </Button>
                 </div>
               </CardContent>

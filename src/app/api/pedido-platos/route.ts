@@ -19,7 +19,7 @@ export async function GET() {
 
     const pedidosActivos = await prisma.pedidos.findMany({
       where: {
-        Estado: true, 
+        Estado: 'Activo',
       },
     });
     console.log(`API: Pedidos activos encontrados: ${pedidosActivos.length}`);
@@ -27,7 +27,7 @@ export async function GET() {
 
     const pedidos = await prisma.pedidos.findMany({
       where: {
-        Estado: true, 
+        Estado: 'Activo',
       },
       include: {
         detallepedidos: {

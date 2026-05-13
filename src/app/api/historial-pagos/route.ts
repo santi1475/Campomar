@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     const { start, end, year, month, day } = getLimaDayRange(fechaStr || undefined);
 
     const where: any = {
-      Estado: false, // Pagados (según tu lógica al poner Estado: false en el pago)
+      Estado: 'Cerrado', // Pagados
       Fecha: {
         gte: start,
         lte: end,

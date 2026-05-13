@@ -7,10 +7,10 @@ export async function GET(req: NextRequest) {
   const estadoParam = searchParams.get("Estado");
   const paraLlevarParam = searchParams.get("ParaLlevar");
 
-  const where: { Estado?: boolean; ParaLlevar?: boolean } = {};
+  const where: { Estado?: 'Activo' | 'Cerrado'; ParaLlevar?: boolean } = {};
 
   if (estadoParam !== null) {
-    where.Estado = estadoParam === "true";
+    where.Estado = estadoParam === "true" ? 'Activo' : 'Cerrado';
   }
   if (paraLlevarParam !== null) {
     where.ParaLlevar = paraLlevarParam === "true";
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
         EmpleadoID,
         Fecha,
         Total: Total ?? 0,
-        Estado: true,
+        Estado: 'Activo',
         ParaLlevar: ParaLlevar ?? false,
       },
     });

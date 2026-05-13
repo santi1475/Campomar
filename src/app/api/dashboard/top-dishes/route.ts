@@ -15,7 +15,7 @@ export async function GET(req: Request) {
       where: {
         pedidos: {
           Fecha: peruRange ? { gte: peruRange.start, lte: peruRange.end } : undefined,
-          Estado: false,
+          Estado: 'Cerrado',
         },
       },
       orderBy: { _sum: { Cantidad: "desc" } },

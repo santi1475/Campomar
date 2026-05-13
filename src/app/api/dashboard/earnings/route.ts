@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     const pedidosPagados = await prisma.pedidos.findMany({
       where: {
         Fecha: peruRange ? { gte: peruRange.start, lte: peruRange.end } : undefined,
-        Estado: false,
+        Estado: 'Cerrado',
       },
       include: {
         detallepedidos: true,
@@ -34,7 +34,7 @@ export async function GET(req: Request) {
       _sum: { Total: true },
       where: {
         Fecha: peruRange ? { gte: peruRange.start, lte: peruRange.end } : undefined,
-        Estado: false,
+        Estado: 'Cerrado',
         TipoPago: { not: null }, // Asegurarse de excluir valores NULL
       },
     });

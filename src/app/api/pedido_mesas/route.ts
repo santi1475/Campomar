@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     // La lógica se invierte: buscamos el pedido activo que contenga CUALQUIERA de las mesas.
     const pedidoActivo = await prisma.pedidos.findFirst({
       where: {
-        Estado: true, // El pedido debe estar activo
+        Estado: 'Activo', // El pedido debe estar activo
         pedido_mesas: {
           some: {
             MesaID: {

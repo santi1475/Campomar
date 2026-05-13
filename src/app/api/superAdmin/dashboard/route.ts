@@ -21,7 +21,7 @@ export async function GET() {
             _count: { PedidoID: true },
             where: {
                 Fecha: { gte: primerDiaMes },
-                Estado: false 
+                Estado: 'Cerrado'
             }
         });
 

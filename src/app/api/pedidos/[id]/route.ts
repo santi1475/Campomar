@@ -38,7 +38,7 @@ const putSchema = yup.object({
   EmpleadoID: yup.number().optional(),
   Fecha: yup.date().optional(),
   Total: yup.number().optional(),
-  Estado: yup.boolean().optional(),
+  Estado: yup.mixed<'Activo' | 'Cerrado'>().oneOf(['Activo', 'Cerrado']).optional(),
   TipoPago: yup.number().optional(),
 });
 
@@ -92,7 +92,7 @@ export async function PUT(request: Request, { params }: Segments) {
 
       console.log("API: Pedido actualizado:", updatedPedido);
 
-      if (Estado === false) {
+      if (Estado === 'Cerrado') {
         console.log("API: Liberando mesas asociadas al pedido");
 
         const mesaIds = existingPedido.pedido_mesas.map((pm) => pm.MesaID);

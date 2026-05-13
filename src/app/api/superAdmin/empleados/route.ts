@@ -16,7 +16,7 @@ export async function GET() {
                 _count: { PedidoID: true },
                 where: {
                     EmpleadoID: emp.EmpleadoID,
-                    Estado: false 
+                    Estado: 'Cerrado'
                 }
             });
 

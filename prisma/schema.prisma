@@ -6,6 +6,10 @@ datasource db {
   provider = "postgresql"
 }
 
+enum PedidoEstado {
+  Activo
+  Cerrado
+}
 
 model empleados {
   EmpleadoID     Int           @id @default(autoincrement())
@@ -25,7 +29,7 @@ model pedidos {
   EmpleadoID     Int
   Fecha          DateTime?        @default(now()) @db.Timestamptz(6)
   Total          Decimal          @db.Decimal(10, 2)
-  Estado         Boolean          @default(true)
+  Estado         PedidoEstado     @default(Activo)
   TipoPago       Int?
   ParaLlevar     Boolean          @default(false)
 
