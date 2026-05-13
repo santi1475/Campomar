@@ -252,8 +252,7 @@ export const MesaOcupada = () => {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...pedido,
-          Estado: 'Cerrado',
+          Estado: PedidoEstado.Cerrado,
           Fecha: new Date(),
           TipoPago: tipoPago,
         }),

@@ -15,14 +15,14 @@ export async function GET() {
       where: { Fecha: { gte: primerDiaMes } },
     });
 
-        const ventas = await prisma.pedidos.aggregate({
-            _sum: { Total: true },
-            _count: { PedidoID: true },
-            where: {
-                Fecha: { gte: primerDiaMes },
-                Estado: 'Cerrado'
-            }
-        });
+    const ventas = await prisma.pedidos.aggregate({
+      _sum: { Total: true },
+      _count: { PedidoID: true },
+      where: {
+        Fecha: { gte: primerDiaMes },
+        Estado: PedidoEstado.Cerrado,
+      },
+    });
 
     const topDeletedRaw = await prisma.auditoria_eliminaciones.groupBy({
       by: ["DescripcionPlato"],

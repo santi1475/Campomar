@@ -4,32 +4,8 @@ import { PedidoEstado } from "@prisma/client";
 
 export async function GET() {
   try {
-    console.log('API: Iniciando búsqueda de pedidos activos');
-    
-    try {
-      await prisma.$connect();
-      console.log('API: Conexión a la base de datos establecida');
-    } catch (error) {
-      console.error('API: Error al conectar con la base de datos:', error);
-      throw error;
-    }
-
-    const todosLosPedidos = await prisma.pedidos.findMany();
-    console.log(`API: Total de pedidos encontrados: ${todosLosPedidos.length}`);
-    console.log('API: Muestra de pedidos:', todosLosPedidos.slice(0, 2));
-
-    const pedidosActivos = await prisma.pedidos.findMany({
-      where: {
-        Estado: 'Activo',
-      },
-    });
-    console.log(`API: Pedidos activos encontrados: ${pedidosActivos.length}`);
-    console.log('API: Muestra de pedidos activos:', pedidosActivos.slice(0, 2));
-
     const pedidos = await prisma.pedidos.findMany({
-      where: {
-        Estado: 'Activo',
-      },
+      where: { Estado: PedidoEstado.Activo },
       include: {
         detallepedidos: { include: { platos: true } },
         pedido_mesas: { include: { mesas: true } },

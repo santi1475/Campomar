@@ -22,14 +22,23 @@ export async function GET(req: NextRequest) {
   const skipParam = searchParams.get("skip");
   const cursorParam = searchParams.get("cursor");
 
-  const where: { Estado?: 'Activo' | 'Cerrado'; ParaLlevar?: boolean } = {};
+  const where: Prisma.pedidosWhereInput = {};
 
-  if (estadoParam !== null) {
-    where.Estado = estadoParam === "true" ? 'Activo' : 'Cerrado';
-  }
-  if (paraLlevarParam !== null) {
-    where.ParaLlevar = paraLlevarParam === "true";
-  }
+  const estado = parsePedidoEstado(estadoParam);
+  if (estado !== undefined) where.Estado = estado;
+  if (paraLlevarParam !== null) where.ParaLlevar = paraLlevarParam === "true";
+
+  const takeRaw = takeParam ? Number.parseInt(takeParam, 10) : DEFAULT_PAGE_SIZE;
+  const take =
+    Number.isFinite(takeRaw) && takeRaw > 0
+      ? Math.min(takeRaw, MAX_PAGE_SIZE)
+      : DEFAULT_PAGE_SIZE;
+
+  const skipRaw = skipParam ? Number.parseInt(skipParam, 10) : 0;
+  const skip = Number.isFinite(skipRaw) && skipRaw >= 0 ? skipRaw : 0;
+
+  const cursorRaw = cursorParam ? Number.parseInt(cursorParam, 10) : NaN;
+  const useCursor = Number.isFinite(cursorRaw) && cursorRaw > 0;
 
   try {
     const pedidos = await prisma.pedidos.findMany({
@@ -66,18 +75,8 @@ const postSchema = yup.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const { EmpleadoID, Fecha, Total, ParaLlevar } = await postSchema.validate(
-      await req.json()
-    );
-    const pedido = await prisma.pedidos.create({
-      data: {
-        EmpleadoID,
-        Fecha,
-        Total: Total ?? 0,
-        Estado: 'Activo',
-        ParaLlevar: ParaLlevar ?? false,
-      },
-    });
+    const { EmpleadoID, Fecha, Total, ParaLlevar, idempotencyKey } =
+      await postSchema.validate(await req.json());
 
     if (idempotencyKey) {
       const existing = await prisma.pedidos.findUnique({

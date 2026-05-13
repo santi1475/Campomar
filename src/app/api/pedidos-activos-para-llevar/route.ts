@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     const pedidos = await prisma.pedidos.findMany({
       where: {
-        Estado: 'Activo',
+        Estado: PedidoEstado.Activo,
         ParaLlevar: true,
       },
       include: {
@@ -48,14 +48,6 @@ export async function GET(request: NextRequest) {
       })),
     }));
 
-    console.log(`[API pedidos-activos-para-llevar] ✅ Encontrados: ${pedidos.length}`);
-    if (pedidos.length === 0) {
-      // Intento de diagnóstico extra: contar totales para llevar sin filtrar estado
-      const totalParaLlevar = await prisma.pedidos.count({ where: { ParaLlevar: true } });
-      const totalParaLlevarActivos = await prisma.pedidos.count({ where: { ParaLlevar: true, Estado: 'Activo' } });
-      console.log(`[API pedidos-activos-para-llevar] ℹ️ Estadísticas -> ParaLlevar(total): ${totalParaLlevar}, ParaLlevar Activos (Estado=Activo): ${totalParaLlevarActivos}`);
-    }
-
     const duracion = Date.now() - inicio;
     console.log(
       `[API pedidos-activos-para-llevar] count=${pedidos.length} duracion=${duracion}ms`
@@ -70,8 +62,8 @@ export async function GET(request: NextRequest) {
       extra.diagnostic = {
         sample: todosParaLlevar.slice(-15),
         totalParaLlevar: todosParaLlevar.length,
-        activos: todosParaLlevar.filter(p => p.Estado === 'Activo').length,
-        inactivos: todosParaLlevar.filter(p => p.Estado !== 'Activo').length,
+        activos: todosParaLlevar.filter((p) => p.Estado === PedidoEstado.Activo).length,
+        inactivos: todosParaLlevar.filter((p) => p.Estado === PedidoEstado.Cerrado).length,
       };
     }
 

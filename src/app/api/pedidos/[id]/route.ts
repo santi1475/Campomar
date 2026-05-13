@@ -32,13 +32,11 @@ export async function GET(_request: NextRequest, { params }: Segments) {
   });
 }
 
-const putSchema = yup.object({
-  EmpleadoID: yup.number().optional(),
-  Fecha: yup.date().optional(),
-  Total: yup.number().optional(),
-  Estado: yup.mixed<'Activo' | 'Cerrado'>().oneOf(['Activo', 'Cerrado']).optional(),
-  TipoPago: yup.number().optional(),
-});
+export async function PUT(request: NextRequest, { params }: Segments) {
+  const pedidoId = Number.parseInt(params.id, 10);
+  if (!Number.isFinite(pedidoId)) {
+    return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+  }
 
   const parsed = await parseJson(request, UpdatePedidoSchema);
   if (!parsed.ok) {
@@ -83,12 +81,10 @@ const putSchema = yup.object({
         data: updateData,
       });
 
-      console.log("API: Pedido actualizado:", updatedPedido);
-
-      if (Estado === 'Cerrado') {
-        console.log("API: Liberando mesas asociadas al pedido");
-
-        const mesaIds = existingPedido.pedido_mesas.map((pm) => pm.MesaID);
+      if (data.Estado === PedidoEstado.Cerrado) {
+        const mesaIds = existingPedido.pedido_mesas
+          .map((pm) => pm.MesaID)
+          .filter((id): id is number => id !== null);
 
         if (mesaIds.length > 0) {
           await tx.mesas.updateMany({

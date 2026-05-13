@@ -48,12 +48,9 @@ export async function GET(req: NextRequest) {
       fechaStr || undefined
     );
 
-    const where: any = {
-      Estado: 'Cerrado', // Pagados
-      Fecha: {
-        gte: start,
-        lte: end,
-      },
+    const where: Prisma.pedidosWhereInput = {
+      Estado: PedidoEstado.Cerrado,
+      Fecha: { gte: start, lte: end },
     };
 
     if (empleadoId) {

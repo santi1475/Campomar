@@ -14,7 +14,7 @@ export async function GET(req: Request) {
       by: ["EmpleadoID"],
       _sum: { Total: true },
       where: {
-        Estado: 'Cerrado', // Pedidos completados
+        Estado: PedidoEstado.Cerrado,
         Fecha: peruRange ? { gte: peruRange.start, lte: peruRange.end } : undefined,
       },
       orderBy: {

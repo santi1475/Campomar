@@ -5,8 +5,8 @@ export const pagarPedido = async (pedido: pedidos) => {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      ...pedido,
-      Estado: 'Cerrado',
+      Estado: PedidoEstado.Cerrado,
+      TipoPago: pedido.TipoPago,
     }),
   });
 

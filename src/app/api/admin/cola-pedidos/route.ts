@@ -13,17 +13,9 @@ export async function GET(req: NextRequest) {
     const mesaNum = searchParams.get("mesa");
     const empleadoId = searchParams.get("empleado");
 
-        // 2. Construir el 'where' dinámicamente
-        let where: any = {
-            Estado: 'Activo', // Siempre traer solo pedidos activos
-        };
-
-        // Filtro por Tipo (Mesas / Para Llevar)
-        if (tipo === 'mesas') {
-            where.ParaLlevar = false;
-        } else if (tipo === 'llevar') {
-            where.ParaLlevar = true;
-        }
+    const where: Prisma.pedidosWhereInput = {
+      Estado: PedidoEstado.Activo,
+    };
 
     if (tipo === "mesas") {
       where.ParaLlevar = false;
