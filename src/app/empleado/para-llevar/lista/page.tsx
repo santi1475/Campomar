@@ -20,7 +20,7 @@ export default function ListaPedidosParaLlevar() {
     const cargar = async () => {
         setLoading(true)
         try {
-            const res = await fetch("/api/pedidos?Estado=true&ParaLlevar=true")
+            const res = await fetch(`/api/pedidos?Estado=true&ParaLlevar=true&t=${Date.now()}`, { cache: "no-store" })
             if (res.ok) {
                 // /api/pedidos devuelve { data: [], pagination: {} }
                 const json = await res.json()

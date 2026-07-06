@@ -56,32 +56,10 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                 detallesConPlatos = await detRes.json();
             }
 
-            if (!detRes.ok || !detallesConPlatos.length) {
-                const allRes = await fetch('/api/detallepedidos', { cache: 'no-store' });
-                if (allRes.ok) {
-                    const todosLosDetalles = await allRes.json();
-                    const detallesPedido = todosLosDetalles.filter((d: any) => d.PedidoID === pedidoId);
-
-                    const platosRes = await fetch('/api/platos', { cache: 'no-store' });
-                    let platos: any[] = [];
-                    if (platosRes.ok) {
-                        platos = await platosRes.json();
-                    }
-
-                    detallesConPlatos = detallesPedido.map((detalle: any) => {
-                        const plato = platos.find((p: any) => p.PlatoID === detalle.PlatoID);
-                        return {
-                            DetalleID: detalle.DetalleID,
-                            PlatoID: detalle.PlatoID,
-                            Cantidad: detalle.Cantidad,
-                            Impreso: detalle.Impreso,
-                            Descripcion: plato ? plato.Descripcion : `Plato ${detalle.PlatoID}`,
-                            Precio: plato ? plato.Precio : 0,
-                            PrecioLlevar: plato ? (plato.PrecioLlevar ?? 0) : 0,
-                        };
-                    });
-                }
+            if (!detRes.ok) {
+                throw new Error("Error al obtener los detalles del pedido");
             }
+
 
             const detallesMapeados = detallesConPlatos.map((d: any) => {
                 return {
