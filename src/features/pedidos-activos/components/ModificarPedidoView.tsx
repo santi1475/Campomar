@@ -366,6 +366,7 @@ export const MesaOcupada = () => {
                             PlatoID: detalle.PlatoID,
                             Descripcion: detalle.descripcionPlato,
                             Cantidad: detalle.Cantidad,
+                            ParaLlevar: !!detalle.ParaLlevar,
                           }))}
                           onPrintSuccess={fetchPedido}
                           triggerButton={

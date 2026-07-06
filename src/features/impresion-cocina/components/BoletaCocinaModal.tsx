@@ -13,6 +13,7 @@ interface OrderItem {
   Descripcion: string
   Cantidad: number
   DetalleID?: number // Solo presente en modo reimprimir
+  ParaLlevar?: boolean
 }
 
 interface BoletaCocinaModalProps {
@@ -122,7 +123,8 @@ export default function BoletaCocinaModal({
           comentario,
           detalles: orderItems.map(item => ({
             PlatoID: item.PlatoID,
-            Cantidad: item.Cantidad
+            Cantidad: item.Cantidad,
+            ParaLlevar: !!item.ParaLlevar,
           }))
         }),
       })

@@ -329,6 +329,7 @@ export default function ModificarPedidoParaLlevar({ pedidoId, showHeader = true 
                                                         PlatoID: detalle.PlatoID,
                                                         Descripcion: detalle.descripcionPlato,
                                                         Cantidad: detalle.Cantidad,
+                                                        ParaLlevar: true,
                                                     }))}
                                                     onPrintSuccess={() => {
                                                         fetchPedido();
